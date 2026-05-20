@@ -27,8 +27,9 @@ if (!require('fs').existsSync(UPDATE_STAGING_DIR)) {
 
 
 class DomusUpdater {
-    constructor(mainWindow) {
+    constructor(mainWindow, appVersion) {
         this.win = mainWindow;
+        this.appVersion = appVersion || app.getVersion();
         this.isChecking = false;
         this.updateReady = false;
     }
@@ -63,7 +64,7 @@ class DomusUpdater {
             const req = net.request({
                 url: GITHUB_API_URL,
                 headers: {
-                    'User-Agent': `DomusBrowser/${app.getVersion()}`,
+                    'User-Agent': `DomusBrowser/${this.appVersion}`,
                     'Accept': 'application/vnd.github.v3+json'
                 }
             });
@@ -83,7 +84,7 @@ class DomusUpdater {
                         }
 
                         const remoteVersion = release.tag_name.replace(/^v/i, '');
-                        const localVersion  = app.getVersion();
+                        const localVersion  = this.appVersion;
 
                         console.log(`[DOMUS Updater] Local: v${localVersion} | Distant: v${remoteVersion}`);
 
@@ -127,7 +128,7 @@ class DomusUpdater {
      * Télécharge le binaire de mise à jour depuis GitHub Releases.
      */
     _download(url, newVersion, resolve) {
-        const req = net.request({ url, headers: { 'User-Agent': `DomusBrowser/${app.getVersion()}` } });
+        const req = net.request({ url, headers: { 'User-Agent': `DomusBrowser/${this.appVersion}` } });
 
         req.on('response', (response) => {
             // GitHub redirige vers son CDN - gérer la redirection manuellement si nécessaire

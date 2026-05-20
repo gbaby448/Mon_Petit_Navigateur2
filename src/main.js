@@ -9,6 +9,7 @@ const securityManager = require('./security');
 const DomusUpdater = require('./updater');
 
 let domusUpdater = null;
+const DOMUS_VERSION = '1.0.3';
 
 // CONFIGURATION DE RENDU ULTRA-FLUIDE ET HYPER-ÉCONOME (GPU BASSE CONSOMMATION)
 app.commandLine.appendSwitch('force-low-power-gpu'); // Force l'utilisation du GPU économe (iGPU) pour économiser l'énergie et éviter le dGPU dédié
@@ -64,7 +65,7 @@ const saveData = (p, d) => {
 // --- PERSISTENCE & SETTINGS ---
 ipcMain.handle('get-settings', () => loadData(settingsPath, { theme: 'dark', accentColor: '#00ff88', searchEngine: 'google', securitySetup: false }));
 ipcMain.handle('save-settings', (e, s) => { saveData(settingsPath, s); return true; });
-ipcMain.handle('get-app-version', () => app.getVersion());
+ipcMain.handle('get-app-version', () => DOMUS_VERSION);
 
 
 // --- SÉCURITÉ & TPM ---
@@ -761,7 +762,7 @@ function createWindow() {
     win.loadFile(path.join(__dirname, 'index.html'));
 
     // --- MOTEUR DE MISE À JOUR GITHUB (vérification silencieuse au démarrage) ---
-    domusUpdater = new DomusUpdater(win);
+    domusUpdater = new DomusUpdater(win, DOMUS_VERSION);
 
     // 🎉 Toast post-MAJ : affiché une seule fois après une mise à jour réussie
     const UPDATE_STAGING_DIR = path.join(
@@ -772,7 +773,7 @@ function createWindow() {
     win.webContents.once('did-finish-load', () => {
         if (fs.existsSync(updateFlagPath)) {
             try {
-                const newVersion = app.getVersion();
+                const newVersion = DOMUS_VERSION;
                 setTimeout(() => {
                     if (win && !win.isDestroyed()) {
                         win.webContents.send('show-float-toast', `🎉 Domus mis à jour vers v${newVersion} ! Bienvenue dans la nouvelle version.`);
