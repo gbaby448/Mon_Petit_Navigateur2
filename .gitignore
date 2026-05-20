@@ -1,0 +1,37 @@
+# ============================================================
+# DOMUS BROWSER PRO - .gitignore
+# Fichiers à NE PAS envoyer sur GitHub
+# ============================================================
+
+# --- Dépendances Node.js (se réinstallent avec "npm install") ---
+node_modules/
+
+# --- Dossier de build/distribution (trop lourd, généré localement) ---
+dist/
+
+# --- Fichiers binaires compilés (régénérés avec "npm run compile") ---
+src/main.jsc
+src/preload.jsc
+src/security.jsc
+
+# --- Données personnelles & confidentielles de l'utilisateur ---
+# (mots de passe, historique, archives, etc. - restent sur TA machine)
+archives/
+*.json
+!package.json
+!package-lock.json
+
+# --- Fichiers temporaires de mise à jour ---
+src/*.jsc.update
+
+# --- Fichiers système Windows & VS Code ---
+.DS_Store
+Thumbs.db
+desktop.ini
+*.log
+build.log
+query
+
+# --- Variables d'environnement ---
+.env
+.env.local

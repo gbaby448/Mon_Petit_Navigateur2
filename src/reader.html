@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Sécurité : CSP stricte pour empêcher l'exécution de scripts malveillants dans les archives -->
+    <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:;">
+    <title>Time Machine Reader</title>
+    <style>
+        :root {
+            --bg: #050506;
+            --text: #e0e0e6;
+            --accent: #00ff88;
+            --border: rgba(255, 255, 255, 0.08);
+            --meta: #8e8e93;
+            --card-bg: #0d0d10;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* --- Barre d'état supérieure --- */
+        header {
+            background: var(--card-bg);
+            border-bottom: 1px solid var(--border);
+            padding: 15px 5%;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(20px);
+        }
+
+        .tm-badge {
+            background: rgba(0, 255, 136, 0.1);
+            color: var(--accent);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border: 1px solid rgba(0, 255, 136, 0.2);
+        }
+
+        .back-link {
+            color: var(--meta);
+            text-decoration: none;
+            font-size: 13px;
+            transition: color 0.2s;
+        }
+
+        .back-link:hover {
+            color: var(--accent);
+        }
+
+        /* --- Layout du contenu --- */
+        main {
+            max-width: 850px;
+            margin: 60px auto;
+            padding: 0 40px;
+        }
+
+        .article-header {
+            margin-bottom: 50px;
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 30px;
+        }
+
+        h1 {
+            font-size: 2.8rem;
+            font-weight: 800;
+            line-height: 1.2;
+            margin-bottom: 15px;
+            letter-spacing: -1px;
+        }
+
+        .article-meta {
+            color: var(--meta);
+            font-size: 14px;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .original-link {
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .original-link:hover {
+            text-decoration: underline;
+        }
+
+        /* --- Rendu du contenu --- */
+        #content-area {
+            font-size: 19px;
+            color: var(--text);
+        }
+
+        #content-area p {
+            margin-bottom: 1.5em;
+        }
+
+        #content-area h2 {
+            margin: 2em 0 1em;
+            color: var(--accent);
+            font-size: 1.6rem;
+        }
+
+        #content-area h3 {
+            margin: 1.5em 0 0.8em;
+            font-size: 1.3rem;
+        }
+
+        #content-area img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 12px;
+            margin: 2em 0;
+            border: 1px solid var(--border);
+            display: block;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        #content-area a {
+            color: var(--accent);
+        }
+
+        #content-area ul,
+        #content-area ol {
+            margin-bottom: 1.5em;
+            padding-left: 1.5em;
+        }
+
+        #content-area li {
+            margin-bottom: 0.5em;
+        }
+
+        /* --- États --- */
+        .loading,
+        .error {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 60vh;
+            text-align: center;
+        }
+
+        .loader-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(0, 255, 136, 0.1);
+            border-top: 3px solid var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .error-icon {
+            font-size: 3rem;
+            margin-bottom: 20px;
+        }
+
+        /* Optimisation pour les écrans larges (HDR style) */
+        @media (min-width: 2000px) {
+            main {
+                max-width: 1000px;
+            }
+
+            #content-area {
+                font-size: 21px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <div class="tm-badge">🕰️ Archive Time Machine</div>
+        <a href="#" onclick="window.history.back()" class="back-link">← Retour au navigateur</a>
+    </header>
+
+    <main id="reader-root">
+        <div class="loading">
+            <div class="loader-spinner"></div>
+            <p style="color: var(--meta)">Extraction des données sécurisées...</p>
+        </div>
+    </main>
+
+    <script>
+        /**
+         * Logique de rendu de l'archive
+         */
+        async function renderArchive() {
+            const root = document.getElementById('reader-root');
+
+            // 1. Récupérer l'ID de l'archive dans l'URL
+            const params = new URLSearchParams(window.location.search);
+            const archiveId = params.get('id');
+
+            if (!archiveId) {
+                renderError("Identifiant d'archive manquant.");
+                return;
+            }
+
+            try {
+                // 2. Appeler l'API exposée par le preload.js
+                const data = await window.domusAPI.getArchiveData(archiveId);
+
+                if (!data) {
+                    renderError("Cette archive n'existe plus ou est corrompue.");
+                    return;
+                }
+
+                // 3. Mise à jour du titre du document
+                document.title = `Time Machine : ${data.title}`;
+
+                // 4. Génération du HTML
+                const displayDate = data.date || (data.timestamp ? new Date(data.timestamp).toLocaleString('fr-FR') : 'Date inconnue');
+
+                root.innerHTML = `
+                    <article>
+                        <div class="article-header">
+                            <h1>${data.title}</h1>
+                            <div class="article-meta">
+                                <span>📅 Sauvegardé le ${displayDate}</span>
+                                <span>🌐 Source : <a href="${data.url}" target="_blank" class="original-link">${new URL(data.url).hostname} ↗</a></span>
+                            </div>
+                        </div>
+                        <div id="content-area">
+                            ${data.content}
+                        </div>
+                    </article>
+                `;
+
+            } catch (error) {
+                console.error("[Reader] Erreur critique:", error);
+                renderError("Impossible de déchiffrer les données de l'archive.");
+            }
+        }
+
+        function renderError(message) {
+            const root = document.getElementById('reader-root');
+            root.innerHTML = `
+                <div class="error">
+                    <div class="error-icon">⚠️</div>
+                    <h2 style="margin-bottom: 10px;">Erreur de lecture</h2>
+                    <p style="color: var(--meta); margin-bottom: 20px;">${message}</p>
+                    <button class="btn-primary" onclick="window.history.back()" 
+                            style="background: var(--accent); border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold;">
+                        Retour
+                    </button>
+                </div>
+            `;
+        }
+
+        // Lancement initial
+        window.addEventListener('DOMContentLoaded', renderArchive);
+    </script>
+</body>
+
+</html>

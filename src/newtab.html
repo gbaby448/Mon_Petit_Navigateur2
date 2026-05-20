@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Domus Pro - Accueil</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #050508;
+            --accent: #00ff88;
+            --accent-glow: rgba(0, 255, 136, 0.25);
+            --text-main: #ffffff;
+            --text-dim: #8e8e93;
+            --glass-bg: rgba(13, 13, 18, 0.65);
+            --glass-border: rgba(255, 255, 255, 0.06);
+            --glass-hover-border: rgba(0, 255, 136, 0.4);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        html, body {
+            background: radial-gradient(circle at center, #0e0e14 0%, var(--bg-dark) 100%) !important;
+            color: var(--text-main);
+            height: 100%;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            user-select: none;
+            margin: 0;
+            padding: 20px;
+        }
+
+        /* Ambient Glow Behind */
+        .ambient-glow {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(0, 255, 136, 0.05) 0%, rgba(0, 0, 0, 0) 70%);
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        /* Clock Section */
+        #clock-container {
+            text-align: center;
+            margin-bottom: 40px;
+            animation: fadeInDown 0.8s ease;
+        }
+
+        #clock {
+            font-size: 5.5rem;
+            font-weight: 800;
+            line-height: 1;
+            letter-spacing: -2px;
+            background: linear-gradient(180deg, #ffffff 30%, #a0a0a8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            margin-bottom: 8px;
+        }
+
+        #date {
+            font-size: 1.15rem;
+            font-weight: 500;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            text-shadow: 0 0 10px rgba(0, 255, 136, 0.4);
+        }
+
+        /* Search Container */
+        .search-container {
+            width: 100%;
+            max-width: 600px;
+            position: relative;
+            margin-bottom: 45px;
+            animation: fadeInUp 0.8s ease;
+            z-index: 10;
+        }
+
+        .search-input {
+            width: 100%;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            padding: 18px 25px 18px 60px;
+            border-radius: 50px;
+            color: white;
+            font-size: 1.15rem;
+            font-weight: 400;
+            outline: none;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            transition: var(--transition);
+        }
+
+        .search-input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 25px var(--accent-glow), 0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 24px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1.3rem;
+            color: var(--accent);
+            text-shadow: 0 0 8px rgba(0, 255, 136, 0.5);
+            pointer-events: none;
+        }
+
+        /* Weather Widget */
+        #weather-widget {
+            position: absolute;
+            top: 30px;
+            right: 30px;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 14px 20px;
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            transition: var(--transition);
+            cursor: pointer;
+            animation: fadeInRight 0.8s ease;
+        }
+
+        #weather-widget:hover {
+            border-color: var(--glass-hover-border);
+            box-shadow: 0 10px 30px rgba(0, 255, 136, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .weather-icon {
+            font-size: 2.2rem;
+            filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.2));
+        }
+
+        .weather-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .weather-temp {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: white;
+            line-height: 1.1;
+        }
+
+        .weather-city {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+
+        .weather-detail {
+            font-size: 0.75rem;
+            color: var(--accent);
+            margin-top: 2px;
+        }
+
+        /* Weather inline input edit */
+        #weather-city-input {
+            background: rgba(0,0,0,0.5);
+            border: 1px solid var(--accent);
+            color: white;
+            font-size: 0.8rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            outline: none;
+            width: 100px;
+        }
+
+        /* Shortcuts Grid (Speed Dial) */
+        #shortcuts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 120px));
+            gap: 20px;
+            justify-content: center;
+            width: 100%;
+            max-width: 680px;
+            animation: fadeInUp 1s ease;
+        }
+
+        .shortcut-item {
+            position: relative;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 18px;
+            padding: 18px 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            transition: var(--transition);
+            text-decoration: none;
+        }
+
+        .shortcut-item:hover {
+            border-color: var(--accent);
+            box-shadow: 0 10px 25px rgba(0, 255, 136, 0.15);
+            transform: translateY(-5px);
+        }
+
+        .shortcut-icon-wrapper {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.03);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 12px;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--accent);
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            transition: var(--transition);
+            overflow: hidden;
+        }
+
+        .shortcut-item:hover .shortcut-icon-wrapper {
+            background: rgba(0, 255, 136, 0.08);
+            border-color: rgba(0, 255, 136, 0.2);
+            color: white;
+            text-shadow: 0 0 8px rgba(0, 255, 136, 0.6);
+        }
+
+        .shortcut-icon-img {
+            width: 28px;
+            height: 28px;
+            object-fit: contain;
+        }
+
+        .shortcut-name {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #e2e2e8;
+            max-width: 90px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            text-align: center;
+        }
+
+        /* Delete Shortcut Button */
+        .shortcut-delete {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: rgba(255, 59, 48, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            font-size: 0.8rem;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            opacity: 0;
+            transform: scale(0.8);
+            transition: var(--transition);
+            box-shadow: 0 4px 10px rgba(255, 59, 48, 0.4);
+            z-index: 5;
+        }
+
+        .shortcut-item:hover .shortcut-delete {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .shortcut-delete:hover {
+            background: #ff3b30;
+            transform: scale(1.15) !important;
+            box-shadow: 0 0 12px rgba(255, 59, 48, 0.8);
+        }
+
+        /* Add Shortcut Button Specific */
+        .shortcut-add {
+            border: 1px dashed rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.01);
+        }
+
+        .shortcut-add:hover {
+            border-color: var(--accent);
+            border-style: solid;
+            background: rgba(0, 255, 136, 0.02);
+        }
+
+        .shortcut-add .shortcut-icon-wrapper {
+            color: var(--text-dim);
+            border-style: dashed;
+        }
+
+        .shortcut-add:hover .shortcut-icon-wrapper {
+            color: var(--accent);
+            border-style: solid;
+        }
+
+        /* Premium Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(5, 5, 8, 0.8);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: var(--transition);
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-box {
+            background: rgba(18, 18, 24, 0.95);
+            border: 1px solid var(--accent);
+            border-radius: 20px;
+            padding: 30px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 30px rgba(0, 255, 136, 0.1);
+            transform: scale(0.9);
+            transition: var(--transition);
+        }
+
+        .modal-overlay.active .modal-box {
+            transform: scale(1);
+        }
+
+        .modal-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: white;
+            text-align: center;
+            letter-spacing: 0.5px;
+        }
+
+        .modal-field {
+            margin-bottom: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .modal-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .modal-input {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 12px 16px;
+            color: white;
+            font-size: 0.95rem;
+            outline: none;
+            transition: var(--transition);
+        }
+
+        .modal-input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 25px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            outline: none;
+        }
+
+        .btn-cancel {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: var(--text-dim);
+        }
+
+        .btn-cancel:hover {
+            border-color: rgba(255, 255, 255, 0.3);
+            color: white;
+        }
+
+        .btn-submit {
+            background: var(--accent);
+            border: 1px solid var(--accent);
+            color: #050508;
+            box-shadow: 0 4px 15px rgba(0, 255, 136, 0.3);
+        }
+
+        .btn-submit:hover {
+            box-shadow: 0 4px 20px rgba(0, 255, 136, 0.6);
+            transform: translateY(-1px);
+        }
+
+        /* Animations */
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeInRight {
+            from { opacity: 0; transform: translateX(20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="ambient-glow"></div>
+
+    <!-- Weather Widget -->
+    <div id="weather-widget">
+        <div class="weather-icon" id="weather-icon">☁️</div>
+        <div class="weather-info">
+            <div class="weather-temp" id="weather-temp">--°C</div>
+            <div class="weather-city" id="weather-city">Recherche...</div>
+            <div class="weather-detail" id="weather-detail">Chargement...</div>
+        </div>
+    </div>
+
+    <!-- Clock & Date -->
+    <div id="clock-container">
+        <div id="clock">00:00</div>
+        <div id="date">DOMUS PRO</div>
+    </div>
+
+    <!-- Search bar -->
+    <div class="search-container">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="fake-search" class="search-input" placeholder="Rechercher ou saisir une adresse..." autocomplete="off" spellcheck="false">
+    </div>
+
+    <!-- Speed Dial (Shortcuts) -->
+    <div id="shortcuts-grid">
+        <!-- Rendu dynamique -->
+    </div>
+
+    <!-- Add Shortcut Modal -->
+    <div class="modal-overlay" id="shortcut-modal">
+        <div class="modal-box">
+            <div class="modal-title">Ajouter un raccourci</div>
+            <div class="modal-field">
+                <label class="modal-label" for="shortcut-name-input">Nom</label>
+                <input type="text" id="shortcut-name-input" class="modal-input" placeholder="Ex: GitHub" autocomplete="off">
+            </div>
+            <div class="modal-field">
+                <label class="modal-label" for="shortcut-url-input">Adresse URL</label>
+                <input type="text" id="shortcut-url-input" class="modal-input" placeholder="Ex: github.com" autocomplete="off">
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-cancel" id="btn-modal-cancel">Annuler</button>
+                <button class="btn btn-submit" id="btn-modal-submit">Ajouter</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // List de sites populaires pour l'autocomplétion
+        const POPULAR_DOMAINS = [
+            "youtube.fr", "youtube.com",
+            "google.fr", "google.com",
+            "github.com",
+            "wikipedia.org",
+            "netflix.com",
+            "amazon.fr", "amazon.com",
+            "proton.me", "protonmail.com",
+            "facebook.com",
+            "twitter.com", "x.com",
+            "linkedin.com",
+            "reddit.com",
+            "gmail.com",
+            "outlook.com",
+            "instagram.com",
+            "discord.com"
+        ];
+
+        // --- SECTION HORLOGE ---
+        function updateClock() {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            document.getElementById('clock').textContent = `${hours}:${minutes}`;
+            const options = { weekday: 'long', day: 'numeric', month: 'long' };
+            document.getElementById('date').textContent = now.toLocaleDateString('fr-FR', options);
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+
+        // --- SECTION METEO ---
+        let weatherCity = localStorage.getItem('weather_city') || '';
+        let weatherLat = localStorage.getItem('weather_lat') || '';
+        let weatherLon = localStorage.getItem('weather_lon') || '';
+
+        const weatherWidget = document.getElementById('weather-widget');
+        const weatherIconEl = document.getElementById('weather-icon');
+        const weatherTempEl = document.getElementById('weather-temp');
+        const weatherCityEl = document.getElementById('weather-city');
+        const weatherDetailEl = document.getElementById('weather-detail');
+
+        function getWeatherIcon(code) {
+            // WMO Weather interpretation codes (https://open-meteo.com/en/docs)
+            if (code === 0) return '☀️'; // Dégagé
+            if (code >= 1 && code <= 3) return '🌤️'; // Peu nuageux
+            if (code >= 45 && code <= 48) return '🌫️'; // Brouillard
+            if (code >= 51 && code <= 55) return '🌧️'; // Bruine
+            if (code >= 61 && code <= 65) return '🌧️'; // Pluie
+            if (code >= 71 && code <= 77) return '❄️'; // Neige
+            if (code >= 80 && code <= 82) return '🌦️'; // Averses de pluie
+            if (code >= 85 && code <= 86) return '❄️'; // Averses de neige
+            if (code >= 95 && code <= 99) return '⚡'; // Orage
+            return '☁️';
+        }
+
+        function getWeatherDesc(code) {
+            if (code === 0) return 'Ciel dégagé';
+            if (code === 1) return 'Principalement dégagé';
+            if (code === 2) return 'Partiellement nuageux';
+            if (code === 3) return 'Couvert';
+            if (code >= 45 && code <= 48) return 'Brouillard';
+            if (code >= 51 && code <= 55) return 'Bruine légère';
+            if (code >= 61 && code <= 65) return 'Pluie';
+            if (code >= 71 && code <= 77) return 'Neige';
+            if (code >= 80 && code <= 82) return 'Averses';
+            if (code >= 95 && code <= 99) return 'Orageux';
+            return 'Nuageux';
+        }
+
+        async function fetchWeather() {
+            try {
+                // Étape 1 : Si pas de coordonnées, on géolocalise via IP
+                if (!weatherLat || !weatherLon || !weatherCity) {
+                    const ipRes = await fetch('https://ipapi.co/json/');
+                    if (!ipRes.ok) throw new Error('IP API failed');
+                    const ipData = await ipRes.json();
+                    weatherCity = ipData.city || 'Paris';
+                    weatherLat = ipData.latitude || '48.8566';
+                    weatherLon = ipData.longitude || '2.3522';
+                    
+                    localStorage.setItem('weather_city', weatherCity);
+                    localStorage.setItem('weather_lat', weatherLat);
+                    localStorage.setItem('weather_lon', weatherLon);
+                }
+
+                weatherCityEl.textContent = weatherCity;
+
+                // Étape 2 : Requête météo sur Open-Meteo
+                const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${weatherLat}&longitude=${weatherLon}&current_weather=true&hourly=relativehumidity_2m`;
+                const weatherRes = await fetch(weatherUrl);
+                if (!weatherRes.ok) throw new Error('Weather API failed');
+                const weatherData = await weatherRes.json();
+                
+                const current = weatherData.current_weather;
+                const temp = Math.round(current.temperature);
+                const code = current.weathercode;
+                
+                weatherTempEl.textContent = `${temp}°C`;
+                weatherIconEl.textContent = getWeatherIcon(code);
+                weatherDetailEl.textContent = getWeatherDesc(code);
+            } catch (err) {
+                console.error("Erreur météo:", err);
+                // Fallback propre
+                weatherCityEl.textContent = weatherCity || 'Paris';
+                weatherTempEl.textContent = '--°C';
+                weatherIconEl.textContent = '☁️';
+                weatherDetailEl.textContent = 'Hors ligne / Indisponible';
+            }
+        }
+
+        // Changement manuel de ville au double clic
+        weatherWidget.ondblclick = () => {
+            const currentCity = weatherCityEl.textContent;
+            weatherCityEl.innerHTML = `<input type="text" id="weather-city-input" value="${currentCity}">`;
+            const input = document.getElementById('weather-city-input');
+            input.focus();
+            input.select();
+            
+            const submitCity = async () => {
+                const newCity = input.value.trim();
+                if (newCity && newCity !== currentCity) {
+                    try {
+                        weatherCityEl.textContent = "Recherche...";
+                        // Géocodage via Open-Meteo
+                        const geocodeUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(newCity)}&count=1&language=fr&format=json`;
+                        const res = await fetch(geocodeUrl);
+                        if (!res.ok) throw new Error('Geocode failed');
+                        const data = await res.json();
+                        if (data.results && data.results.length > 0) {
+                            const result = data.results[0];
+                            weatherCity = result.name;
+                            weatherLat = result.latitude;
+                            weatherLon = result.longitude;
+                            
+                            localStorage.setItem('weather_city', weatherCity);
+                            localStorage.setItem('weather_lat', weatherLat);
+                            localStorage.setItem('weather_lon', weatherLon);
+                            
+                            fetchWeather();
+                        } else {
+                            alert("Ville non trouvée");
+                            weatherCityEl.textContent = weatherCity;
+                        }
+                    } catch (e) {
+                        console.error(e);
+                        weatherCityEl.textContent = weatherCity;
+                    }
+                } else {
+                    weatherCityEl.textContent = weatherCity;
+                }
+            };
+
+            input.onblur = submitCity;
+            input.onkeydown = (e) => {
+                if (e.key === 'Enter') submitCity();
+                if (e.key === 'Escape') weatherCityEl.textContent = weatherCity;
+            };
+        };
+
+        fetchWeather();
+
+
+        // --- SECTION RACCOURCIS (SPEED DIAL) ---
+        const DEFAULT_SHORTCUTS = [
+            { id: '1', name: 'Google', url: 'google.com' },
+            { id: '2', name: 'YouTube', url: 'youtube.com' },
+            { id: '3', name: 'GitHub', url: 'github.com' },
+            { id: '4', name: 'Wikipedia', url: 'wikipedia.org' }
+        ];
+
+        let shortcuts = [];
+        try {
+            const saved = localStorage.getItem('domus_shortcuts');
+            if (saved) {
+                shortcuts = JSON.parse(saved);
+            } else {
+                shortcuts = [...DEFAULT_SHORTCUTS];
+                localStorage.setItem('domus_shortcuts', JSON.stringify(shortcuts));
+            }
+        } catch (e) {
+            shortcuts = [...DEFAULT_SHORTCUTS];
+        }
+
+        const shortcutsGrid = document.getElementById('shortcuts-grid');
+        const modalOverlay = document.getElementById('shortcut-modal');
+        const btnCancel = document.getElementById('btn-modal-cancel');
+        const btnSubmit = document.getElementById('btn-modal-submit');
+        const shortcutNameInput = document.getElementById('shortcut-name-input');
+        const shortcutUrlInput = document.getElementById('shortcut-url-input');
+
+        function cleanUrlForFavicon(url) {
+            let domain = url.trim();
+            if (domain.startsWith('http://')) domain = domain.substring(7);
+            if (domain.startsWith('https://')) domain = domain.substring(8);
+            if (domain.startsWith('www.')) domain = domain.substring(4);
+            return domain.split('/')[0];
+        }
+
+        function cleanUrlForNavigation(url) {
+            let target = url.trim();
+            if (!target.startsWith('http://') && !target.startsWith('https://')) {
+                target = 'https://' + target;
+            }
+            return target;
+        }
+
+        function renderShortcuts() {
+            shortcutsGrid.innerHTML = '';
+            
+            shortcuts.forEach(item => {
+                const el = document.createElement('a');
+                el.className = 'shortcut-item';
+                el.href = cleanUrlForNavigation(item.url);
+                
+                // Clic sur le raccourci
+                el.onclick = (e) => {
+                    e.preventDefault();
+                    navigate(cleanUrlForNavigation(item.url));
+                };
+
+                const deleteBtn = document.createElement('div');
+                deleteBtn.className = 'shortcut-delete';
+                deleteBtn.textContent = '×';
+                deleteBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    deleteShortcut(item.id);
+                };
+                el.appendChild(deleteBtn);
+
+                const iconWrapper = document.createElement('div');
+                iconWrapper.className = 'shortcut-icon-wrapper';
+                
+                const cleanDomain = cleanUrlForFavicon(item.url);
+                const img = document.createElement('img');
+                img.className = 'shortcut-icon-img';
+                img.src = `https://www.google.com/s2/favicons?sz=64&domain=${cleanDomain}`;
+                img.alt = item.name;
+                // Fallback si l'image ne charge pas
+                img.onerror = () => {
+                    img.remove();
+                    iconWrapper.textContent = item.name.charAt(0).toUpperCase();
+                };
+                iconWrapper.appendChild(img);
+                el.appendChild(iconWrapper);
+
+                const nameEl = document.createElement('div');
+                nameEl.className = 'shortcut-name';
+                nameEl.textContent = item.name;
+                el.appendChild(nameEl);
+
+                shortcutsGrid.appendChild(el);
+            });
+
+            // Bouton Ajouter (+)
+            const addEl = document.createElement('div');
+            addEl.className = 'shortcut-item shortcut-add';
+            addEl.onclick = () => openModal();
+
+            const addIconWrapper = document.createElement('div');
+            addIconWrapper.className = 'shortcut-icon-wrapper';
+            addIconWrapper.textContent = '+';
+            addEl.appendChild(addIconWrapper);
+
+            const addNameEl = document.createElement('div');
+            addNameEl.className = 'shortcut-name';
+            addNameEl.textContent = 'Ajouter';
+            addEl.appendChild(addNameEl);
+
+            shortcutsGrid.appendChild(addEl);
+        }
+
+        function deleteShortcut(id) {
+            shortcuts = shortcuts.filter(s => s.id !== id);
+            localStorage.setItem('domus_shortcuts', JSON.stringify(shortcuts));
+            renderShortcuts();
+        }
+
+        function openModal() {
+            shortcutNameInput.value = '';
+            shortcutUrlInput.value = '';
+            modalOverlay.classList.add('active');
+            shortcutNameInput.focus();
+        }
+
+        function closeModal() {
+            modalOverlay.classList.remove('active');
+        }
+
+        function addShortcut() {
+            const name = shortcutNameInput.value.trim();
+            let url = shortcutUrlInput.value.trim();
+            if (!name || !url) return;
+
+            const id = Date.now().toString();
+            shortcuts.push({ id, name, url });
+            localStorage.setItem('domus_shortcuts', JSON.stringify(shortcuts));
+            
+            closeModal();
+            renderShortcuts();
+        }
+
+        btnCancel.onclick = closeModal;
+        modalOverlay.onclick = (e) => {
+            if (e.target === modalOverlay) closeModal();
+        };
+
+        btnSubmit.onclick = addShortcut;
+        shortcutNameInput.onkeydown = (e) => { if (e.key === 'Enter') shortcutUrlInput.focus(); };
+        shortcutUrlInput.onkeydown = (e) => { if (e.key === 'Enter') addShortcut(); };
+
+        renderShortcuts();
+
+        // Fonction de navigation harmonisée
+        function navigate(url) {
+            if (window.domusAPI) {
+                window.domusAPI.navigate(url);
+            } else {
+                window.location.href = url;
+            }
+        }
+
+
+        // --- SECTION AUTOCOMPLETION INLINE INTÉLLIGENTE ---
+        const searchInput = document.getElementById('fake-search');
+        let inhibitCompletion = false;
+
+        searchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Backspace' || e.key === 'Delete') {
+                inhibitCompletion = true;
+            } else {
+                inhibitCompletion = false;
+            }
+
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                let query = searchInput.value.trim();
+                if (!query) return;
+
+                // Si c'est un domaine ou une URL directe
+                const isDomain = /^[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9](?:\.[a-zA-Z]{2,})+/.test(query);
+                const isDirectUrl = query.startsWith('http://') || query.startsWith('https://') || query.startsWith('domus://');
+                
+                if (isDirectUrl) {
+                    navigate(query);
+                } else if (isDomain) {
+                    navigate('https://' + query);
+                } else {
+                    // Navigation par moteur de recherche par défaut
+                    let engineUrl = 'https://www.google.com/search?q=';
+                    if (window.domusAPI) {
+                        window.domusAPI.getSettings().then(settings => {
+                            if (settings.searchEngine === 'duckduckgo') engineUrl = 'https://duckduckgo.com/?q=';
+                            if (settings.searchEngine === 'bing') engineUrl = 'https://www.bing.com/search?q=';
+                            navigate(`${engineUrl}${encodeURIComponent(query)}`);
+                        });
+                    } else {
+                        window.location.href = `${engineUrl}${encodeURIComponent(query)}`;
+                    }
+                }
+            }
+        });
+
+        searchInput.addEventListener('input', () => {
+            if (inhibitCompletion) return;
+
+            const text = searchInput.value;
+            if (!text) return;
+
+            // On cherche une correspondance
+            const textLower = text.toLowerCase();
+            
+            // On combine les raccourcis locaux et les domaines populaires
+            const candidates = [
+                ...shortcuts.map(s => cleanUrlForFavicon(s.url)),
+                ...POPULAR_DOMAINS
+            ];
+
+            // Trouver le premier domaine qui commence par la saisie de l'utilisateur
+            const match = candidates.find(domain => domain.toLowerCase().startsWith(textLower) && domain.length > textLower.length);
+            
+            if (match) {
+                const start = text.length;
+                searchInput.value = text + match.substring(start);
+                searchInput.setSelectionRange(start, searchInput.value.length);
+            }
+        });
+
+        window.onload = () => searchInput.focus();
+    </script>
+</body>
+
+</html>

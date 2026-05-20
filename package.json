@@ -1,0 +1,58 @@
+{
+  "name": "domus-browser",
+  "version": "1.0.1",
+  "description": "Navigateur souverain, sécurisé et performant.",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "electron .",
+    "compile": "electron compile.js",
+    "build": "electron-builder",
+    "dist": "npm run compile && npm run build",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "browser",
+    "security",
+    "privacy",
+    "domus"
+  ],
+  "author": "Domus Team",
+  "license": "MIT",
+  "type": "commonjs",
+  "devDependencies": {
+    "electron": "^41.4.0",
+    "electron-builder": "^26.8.1",
+    "electron-updater": "^6.8.3"
+  },
+  "dependencies": {
+    "geoip-lite": "^2.0.1",
+    "ws": "^8.20.0"
+  },
+  "build": {
+    "appId": "com.domus.browser.pro",
+    "productName": "DomusPro",
+    "copyright": "Copyright © 2024 Domus Team",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "!src/main.js",
+      "package.json"
+    ],
+    "asarUnpack": [
+      "**/node_modules/geoip-lite/**/*"
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "Domus Pro"
+    }
+  }
+}

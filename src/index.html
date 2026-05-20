@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:;">
+    <title>Domus Browser Pro</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="domus-theme-dark">
+    <!-- BARRE DE TITRE PERSONNALISÉE (LOOK PRO) -->
+    <div id="title-bar">
+        <div id="title-drag">🌐 Domus Browser Pro</div>
+        <div id="win-controls">
+            <div class="win-btn" id="win-min" title="Réduire">─</div>
+            <div class="win-btn" id="win-max" title="Agrandir">▢</div>
+            <div class="win-btn close" id="win-close" title="Quitter">✕</div>
+        </div>
+    </div>
+
+    <div id="app-container">
+        <!-- SIDEBAR -->
+        <aside id="sidebar">
+            <div class="sidebar-icon" id="btn-toggle-sidebar" title="Masquer la barre">☰</div>
+            <div class="sidebar-spacer"></div>
+            <div class="sidebar-icon active" id="btn-home" title="Espaces de Travail">🏠</div>
+            <div class="sidebar-icon" title="Historique" id="btn-history">🕒</div>
+            <div class="sidebar-icon" title="Favoris" id="btn-favorites">⭐</div>
+            <div class="sidebar-icon" title="Time Machine" id="btn-timemachine">⌛</div>
+            <div class="sidebar-icon" title="Téléchargements" id="btn-downloads">⬇️</div>
+            <div class="sidebar-icon" title="Extensions" id="btn-extensions">🧩</div>
+            <div class="sidebar-icon" title="Domus Dev Studio" id="btn-dev-studio" style="display: none;">🛠️</div>
+            <div class="sidebar-icon" title="Mots de passe" id="btn-passwords">🔐</div>
+            <div class="sidebar-spacer"></div>
+            <div id="eco-shield" title="Eco-Shield">
+                <div id="eco-icon">🛡️</div>
+                <div id="eco-ram">0MB</div>
+            </div>
+            <div class="sidebar-icon" title="Mode Sombre" id="btn-dark-mode">🌓</div>
+            <div class="sidebar-icon" title="Studio Audio" id="btn-audio">🎚️</div>
+            <div class="sidebar-icon" title="Mode Cinématique" id="btn-cinema">🎬</div>
+            <div class="sidebar-icon" title="Video AI Engine" id="btn-video-ai">⚡</div>
+            <div class="sidebar-icon" title="Paramètres" id="btn-settings">⚙️</div>
+        </aside>
+
+        <main class="main-content">
+            <!-- TAB BAR -->
+            <div id="tabs-bar">
+                <div id="tabs-container"></div>
+                <button id="btn-new-tab" class="tab-btn" title="Nouvel Onglet">+</button>
+                <button id="btn-new-shadow-tab" class="tab-btn shadow-btn" title="Nouvel Onglet Shadow éphémère">👻</button>
+            </div>
+
+            <!-- NAVBAR -->
+            <nav class="navbar">
+                <div class="nav-controls">
+                    <button id="btn-sidebar-reveal" title="Afficher la barre">☰</button>
+                    <button id="btn-open-hub-nav" title="Domus Hub">💠</button>
+                    <button id="back">◀</button>
+                    <button id="forward">▶</button>
+                    <button id="reload">🔄</button>
+                </div>
+                <div id="shield-container">
+                    <span id="shield-icon">🛡️</span>
+                    <span id="blocked-count">0</span>
+                </div>
+                <div class="url-bar-container">
+                    <span id="security-indicator" title="Statut de Sécurité">⚙️</span>
+                    <input type="text" id="url-input" placeholder="Rechercher ou URL...">
+                    <div id="loading-progress"></div>
+                    <div id="suggestions-box" class="hidden"></div>
+                    <div class="url-actions" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); display: flex; gap: 8px;">
+                        <button id="btn-save-archive" title="Time Machine : Archiver cette page" style="background: none; border: none; cursor: pointer; font-size: 14px; opacity: 0.6; transition: 0.2s;">🕰️</button>
+                    </div>
+                </div>
+                <div class="profile-container">
+                    <div class="profile-icon" id="profile-btn" title="Changer d'espace">👤</div>
+                    <div id="profile-flyout" class="hidden">
+                        <div class="modal-header">
+                            <div class="flyout-title">Espaces de Travail</div>
+                            <button class="modal-close" id="btn-close-profile">✕</button>
+                        </div>
+                        <div class="profile-option" data-profile="default"><span>🏠</span> Standard</div>
+                        <div class="profile-option" data-profile="work"><span>💼</span> Travail</div>
+                        <div class="profile-option private" data-profile="private"><span>🕵️</span> Mode Privé</div>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- ZONE DE NAVIGATION (UNIFIÉE) -->
+            <div id="web-view-container">
+                <div id="webview-wrapper">
+                    <!-- Les balises <webview> seront injectées ici par le renderer -->
+                </div>
+
+            </div>
+
+            <!-- SIDE PANELS -->
+            <div id="data-map-panel" class="side-panel hidden">
+                <div class="panel-header">
+                    <h3>🌍 Data Map</h3>
+                    <button class="panel-close" data-close="data-map-panel">✕</button>
+                </div>
+                <div id="geo-list"></div>
+            </div>
+            <div id="audio-panel" class="side-panel hidden">
+                <div class="panel-header">
+                    <h3>🎚️ Studio Audio</h3>
+                    <button class="panel-close" data-close="audio-panel">✕</button>
+                </div>
+                
+                <!-- CARTE DE CONTRÔLE MOTEUR ACOUSTIQUE HD -->
+                <div class="audio-booster-card">
+                    <div class="booster-header">
+                        <span class="booster-title">⚡ ACOUSTIQUE PRO HD</span>
+                        <label class="switch">
+                            <input type="checkbox" id="booster-toggle" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <p class="booster-desc">Égalisation paramétrique et normalisation de dynamique de qualité studio.</p>
+                    <div class="booster-row">
+                        <span class="booster-label">Profil :</span>
+                        <select id="booster-preset" class="booster-select">
+                            <option value="balanced">🎧 Équilibré & Punchy</option>
+                            <option value="vocal">🗣️ Voix Claire & Cinéma</option>
+                            <option value="bass">🔥 Bass Boost & Club</option>
+                            <option value="off">🚫 Désactivé (Natif)</option>
+                        </select>
+                    </div>
+                    <!-- Jauge visuelle animée -->
+                    <div class="booster-visualizer" id="booster-viz">
+                        <div class="viz-bar" style="animation-delay: 0.1s;"></div>
+                        <div class="viz-bar" style="animation-delay: 0.4s;"></div>
+                        <div class="viz-bar" style="animation-delay: 0.2s;"></div>
+                        <div class="viz-bar" style="animation-delay: 0.6s;"></div>
+                        <div class="viz-bar" style="animation-delay: 0.3s;"></div>
+                        <div class="viz-bar" style="animation-delay: 0.5s;"></div>
+                        <div class="viz-bar" style="animation-delay: 0.7s;"></div>
+                        <div class="viz-bar" style="animation-delay: 0.2s;"></div>
+                    </div>
+                </div>
+
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; margin-top: 20px;">
+                    <p style="font-size:10px; opacity:0.6; margin:0; text-transform:uppercase; letter-spacing:1px;">Pistes Actives</p>
+                    <button class="action-btn" id="btn-mute-all" style="width:auto; padding:4px 10px; font-size:10px;">Silence Global</button>
+                </div>
+                <div id="audio-list"></div>
+            </div>
+            <div id="workspace-panel" class="side-panel hidden">
+                <div class="panel-header">
+                    <h3>📂 Espaces</h3>
+                    <div style="display: flex; gap: 8px;">
+                        <button id="btn-open-add-ws" class="action-btn" style="width: 26px; height: 26px;">+</button>
+                        <button class="panel-close" data-close="workspace-panel">✕</button>
+                    </div>
+                </div>
+                <div id="workspace-list"></div>
+            </div>
+            <div id="favorites-panel" class="side-panel hidden">
+                <div class="panel-header">
+                    <h3>⭐ Favoris</h3>
+                    <button class="panel-close" data-close="favorites-panel">✕</button>
+                </div>
+                <div class="search-box"><input type="text" id="fav-search" placeholder="Rechercher..."></div>
+                <div id="favorites-list"></div>
+            </div>
+            <div id="timemachine-panel" class="side-panel hidden">
+                <div class="panel-header">
+                    <h3>⌛ Time Machine</h3>
+                    <button class="panel-close" data-close="timemachine-panel">✕</button>
+                </div>
+                <div style="display: flex; gap: 8px; margin-bottom: 15px;">
+                    <button class="action-btn" id="btn-refresh-tm" style="font-size: 10px;">Actualiser</button>
+                    <button class="action-btn secondary" id="btn-tm-settings" style="font-size: 10px;">Réglages</button>
+                </div>
+                <div id="tm-archive-list"></div>
+            </div>
+            <div id="password-panel" class="side-panel hidden">
+                <div class="panel-header">
+                    <h3>🔐 Coffre-fort</h3>
+                    <div style="display: flex; gap: 8px;">
+                        <button id="btn-import-passwords" class="action-btn" title="Importer des comptes">📥</button>
+                        <button id="btn-add-password" class="action-btn" title="Ajouter">+</button>
+                        <button class="panel-close" data-close="password-panel">✕</button>
+                    </div>
+                </div>
+                <div class="panel-tabs">
+                    <button class="panel-tab active" id="tab-vault-passwords">Comptes</button>
+                    <button class="panel-tab" id="tab-vault-cards">Cartes</button>
+                </div>
+                
+                <!-- Section Comptes -->
+                <div id="vault-passwords-section">
+                    <div class="search-box"><input type="text" id="password-search" placeholder="Rechercher..."></div>
+                    <div id="password-list"></div>
+                </div>
+
+                <!-- Section Cartes Bancaires -->
+                <div id="vault-cards-section" class="hidden">
+                    <div class="search-box"><input type="text" id="card-search" placeholder="Rechercher une carte..."></div>
+                    <div id="cards-list"></div>
+                </div>
+            </div>
+
+            <!-- MODALS -->
+            <div id="security-wizard-modal" class="modal-overlay hidden">
+                <div class="modal-content onboarding-card">
+                    <div id="wizard-progress-container">
+                        <div id="wizard-progress-bar"></div>
+                    </div>
+                    <!-- Slide 1: Welcome -->
+                    <div id="wizard-step-1" class="wizard-slide active">
+                        <div class="slide-icon">🛡️</div>
+                        <h2>Bienvenue dans Domus Pro</h2>
+                        <p>Le premier navigateur souverain conçu pour la sécurité et la performance absolue.</p>
+                        <div class="slide-features">
+                            <div class="feature-badge">Sans Pistage</div>
+                            <div class="feature-badge">Audit Matériel</div>
+                            <div class="feature-badge">Innovation</div>
+                        </div>
+                        <button class="action-btn next-step">Commencer l'Audit</button>
+                    </div>
+
+                    <!-- Slide 2: Innovation -->
+                    <div id="wizard-step-2" class="wizard-slide hidden">
+                        <div class="slide-icon">⚡</div>
+                        <h3>L'Innovation Domus</h3>
+                        <p>Découvrez nos outils exclusifs :</p>
+                        <ul class="feature-list">
+                            <li><strong>Time Machine</strong> : Lisez vos archives web sans connexion.</li>
+                            <li><strong>Studio Audio</strong> : Un mixeur spatial intégré.</li>
+                            <li><strong>Cinématique</strong> : Une immersion vidéo sans pubs ni trackers.</li>
+                        </ul>
+                        <div class="wizard-nav">
+                            <button class="action-btn secondary prev-step">Retour</button>
+                            <button class="action-btn next-step">Continuer</button>
+                        </div>
+                    </div>
+
+                    <!-- Slide 3: Mode Développeur -->
+                    <div id="wizard-step-3" class="wizard-slide hidden">
+                        <div class="slide-icon">👨‍💻</div>
+                        <h3>Transparence & DevMode</h3>
+                        <p>Domus Pro est "Open-Heart". Nos outils de développement sont intégrés nativement pour une inspection totale de la sécurité des sites que vous visitez.</p>
+                        <div class="wizard-nav">
+                            <button class="action-btn secondary prev-step">Retour</button>
+                            <button class="action-btn next-step">Compris</button>
+                        </div>
+                    </div>
+
+                    <!-- Slide 4: Migration -->
+                    <div id="wizard-step-4" class="wizard-slide hidden">
+                        <div class="slide-icon">🚚</div>
+                        <h3>Migration Intelligente</h3>
+                        <p>Domus peut importer vos données de manière sécurisée via les API standard de Windows.</p>
+                        <div id="detected-browsers" class="browser-list">
+                            <!-- Détection auto -->
+                        </div>
+                        <div style="margin-top: 15px; padding: 15px; background: rgba(0,255,136,0.03); border-radius: 12px; border: 1px solid rgba(0,255,136,0.1);">
+                            <p style="font-size: 10px; opacity: 0.6; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Options de transfert</p>
+                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin-bottom: 8px;">
+                                <input type="checkbox" id="mig-fav" checked>
+                                <span style="font-size: 11px;">🌟 Favoris et Marque-pages</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin-bottom: 8px;">
+                                <input type="checkbox" id="mig-hist" checked>
+                                <span style="font-size: 11px;">🕒 Historique de navigation</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin-bottom: 8px;">
+                                <input type="checkbox" id="mig-passwords" checked>
+                                <span style="font-size: 11px;">🔐 Mots de passe (Sécurisé DPAPI)</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                                <input type="checkbox" id="mig-tm-only">
+                                <span style="font-size: 11px;">🚀 Mode Futuriste (Time Machine)</span>
+                            </label>
+                        </div>
+                        <div class="wizard-nav">
+                            <button class="action-btn secondary prev-step">Retour</button>
+                            <button class="action-btn next-step" id="btn-start-mig">Importer</button>
+                        </div>
+                    </div>
+
+                    <!-- Slide 5: Atmosphère -->
+                    <div id="wizard-step-5" class="wizard-slide hidden">
+                        <div class="slide-icon">🎭</div>
+                        <h3>Choisissez votre Atmosphère</h3>
+                        <p>Domus s'adapte à votre style. Quelle énergie voulez-vous aujourd'hui ?</p>
+                        <div class="theme-picker-wizard">
+                            <div class="theme-option active" data-theme="default" style="--c: #00ff88;">
+                                <div class="dot"></div> Matrix
+                            </div>
+                            <div class="theme-option" data-theme="cyber" style="--c: #ff00ff;">
+                                <div class="dot"></div> Cyberpunk
+                            </div>
+                            <div class="theme-option" data-theme="space" style="--c: #00c6ff;">
+                                <div class="dot"></div> Deep Space
+                            </div>
+                            <div class="theme-option" data-theme="volcanic" style="--c: #ff4d00;">
+                                <div class="dot"></div> Volcanic
+                            </div>
+                        </div>
+                        <div class="wizard-nav">
+                            <button class="action-btn next-step">Continuer</button>
+                        </div>
+                    </div>
+
+                    <!-- Slide 6: Productivité -->
+                    <div id="wizard-step-6" class="wizard-slide hidden">
+                        <div class="slide-icon">⌨️</div>
+                        <h3>Maîtrisez les raccourcis Pro</h3>
+                        <p>Gagnez en efficacité avec les commandes Domus :</p>
+                        <div class="shortcut-list">
+                            <div class="shortcut-item"><kbd>Ctrl</kbd> + <kbd>S</kbd> <span>Split-Screen (Écran scindé)</span></div>
+                            <div class="shortcut-item"><kbd>Ctrl</kbd> + <kbd>Z</kbd> <span>Zen Mode (Immersion)</span></div>
+                            <div class="shortcut-item"><kbd>F6</kbd> <span>Focus Barre d'Adresse</span></div>
+                        </div>
+                        <div class="wizard-nav">
+                            <button class="action-btn next-step">J'ai compris</button>
+                        </div>
+                    </div>
+
+                    <!-- Slide 7: Audit Matériel -->
+                    <div id="wizard-step-7" class="wizard-slide hidden">
+                        <div class="slide-icon">🔋</div>
+                        <h3>Audit de Sécurité</h3>
+                        <div id="tpm-report-card" class="report-card">
+                            <div class="report-status">Analyse du matériel...</div>
+                            <div id="tpm-details"></div>
+                        </div>
+                        <p id="tpm-guidance"></p>
+                        <div id="password-setup-area" class="hidden">
+                            <input type="password" id="master-pwd-input" placeholder="Créer un Master Password (12+ char)">
+                            <p id="pwd-error-msg" class="error-text"></p>
+                        </div>
+                        <div class="wizard-nav">
+                            <button class="action-btn next-step" id="btn-finalize-security">Sécuriser</button>
+                        </div>
+                    </div>
+
+                    <!-- Slide 8: Final -->
+                    <div id="wizard-step-8" class="wizard-slide hidden">
+                        <div class="slide-icon">✨</div>
+                        <h3>Prêt au Décollage</h3>
+                        <p>Votre environnement Domus Pro est maintenant configuré et blindé.</p>
+                        <div class="disclaimer-card">
+                            ⚠️ <strong>Rappel</strong> : Domus Pro sécurise vos données de navigation, mais ne remplace pas une solution antivirus pour votre système.
+                        </div>
+                        <button id="btn-finish-wizard" class="action-btn">Lancer Domus Pro</button>
+                    </div>
+                    <button class="modal-close" id="btn-close-wizard" style="position: absolute; top: 15px; right: 15px;">✕</button>
+                </div>
+            </div>
+
+            <div id="add-pwd-modal" class="modal-overlay hidden">
+                <div class="modal-content" style="max-width: 420px;">
+                    <div class="modal-header">
+                        <h3>Nouveau Compte</h3>
+                        <button class="modal-close" id="btn-close-add-pwd">✕</button>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 12px; text-align: left;">
+                        <input type="text" id="pwd-site-input" placeholder="Site (ex: github.com)">
+                        <input type="text" id="pwd-user-input" placeholder="Utilisateur ou Email">
+                        
+                        <div style="position: relative;">
+                            <input type="password" id="pwd-pass-input" placeholder="Mot de passe" style="width: 100%; box-sizing: border-box; padding-right: 40px;">
+                            <span id="btn-toggle-view-pwd" style="position: absolute; right: 12px; top: 12px; cursor: pointer; color: var(--text-secondary); font-size: 13px;" title="Afficher/Masquer le mot de passe">👁️</span>
+                        </div>
+                        
+                        <!-- Toggle de génération de mot de passe complexe (façon Domus Pass) -->
+                        <div class="pwd-generator-toggle" id="toggle-pwd-generator">
+                            <span>⚡ Générer un mot de passe complexe</span>
+                        </div>
+                        
+                        <!-- Panneau dépliant du générateur -->
+                        <div class="pwd-generator-panel hidden" id="pwd-generator-panel">
+                            <div class="gen-field">
+                                <span class="gen-label">Type :</span>
+                                <div class="gen-type-selectors">
+                                    <button type="button" class="gen-type-btn active" id="gen-type-random">Aléatoire</button>
+                                    <button type="button" class="gen-type-btn" id="gen-type-passphrase">Passphrase</button>
+                                </div>
+                            </div>
+                            
+                            <!-- Longueur -->
+                            <div class="gen-field">
+                                <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px;">
+                                    <span class="gen-label" id="gen-len-label">Longueur : 16</span>
+                                </div>
+                                <input type="range" id="gen-length-slider" min="12" max="32" value="16" style="width: 100%; margin: 0; background: var(--border-color);">
+                            </div>
+
+                            <!-- Options de caractères (Aléatoire) -->
+                            <div id="gen-options-charset" class="gen-options-grid">
+                                <label class="gen-checkbox-label">
+                                    <input type="checkbox" id="gen-opt-upper" checked> Majuscules (A-Z)
+                                </label>
+                                <label class="gen-checkbox-label">
+                                    <input type="checkbox" id="gen-opt-lower" checked> Minuscules (a-z)
+                                </label>
+                                <label class="gen-checkbox-label">
+                                    <input type="checkbox" id="gen-opt-numbers" checked> Chiffres (0-9)
+                                </label>
+                                <label class="gen-checkbox-label">
+                                    <input type="checkbox" id="gen-opt-symbols" checked> Symboles (!@#$)
+                                </label>
+                            </div>
+                            
+                            <!-- Robustesse -->
+                            <div class="gen-strength-container">
+                                <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px; color: var(--text-secondary);">
+                                    <span>Robustesse :</span>
+                                    <span id="gen-strength-text" style="font-weight: bold; color: var(--accent-color);">Fort</span>
+                                </div>
+                                <div class="gen-strength-bar-bg">
+                                    <div id="gen-strength-bar" style="width: 75%; height: 100%; background: var(--accent-color); border-radius: 2px; transition: width 0.3s, background 0.3s;"></div>
+                                </div>
+                            </div>
+
+                            <button type="button" class="action-btn secondary" id="btn-generate-now" style="width: 100%; margin-top: 10px; padding: 8px; font-size: 11px;">Générer un nouveau mot de passe 🔄</button>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 10px; margin-top: 20px;">
+                        <button id="btn-cancel-pwd" class="action-btn secondary" style="flex: 1;">Annuler</button>
+                        <button id="btn-save-pwd" class="action-btn" style="flex: 1;">Enregistrer</button>
+                    </div>
+                </div>
+            </div>
+
+             <div id="add-card-modal" class="modal-overlay hidden">
+                 <div class="modal-content" style="max-width: 400px; text-align: left;">
+                     <div class="modal-header">
+                         <h3 style="color: var(--accent-color); margin: 0;">Nouvelle Carte</h3>
+                         <button class="modal-close" id="btn-close-add-card">✕</button>
+                     </div>
+                     <p style="font-size: 11px; color: var(--text-secondary); margin-bottom: 15px;">Les informations de la carte seront chiffrées matériellement (TPM 2.0).</p>
+                     
+                     <div style="display: flex; flex-direction: column; gap: 12px;">
+                         <input type="text" id="card-label-input" placeholder="Libellé (ex: Visa Perso)" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--bg-dark); color: white; outline: none;">
+                         <input type="text" id="card-holder-input" placeholder="Nom du Titulaire" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--bg-dark); color: white; outline: none;">
+                         <input type="text" id="card-number-input" placeholder="Numéro de carte (16 chiffres)" maxlength="19" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--bg-dark); color: white; outline: none;">
+                         <div style="display: flex; gap: 10px;">
+                             <input type="text" id="card-expiry-input" placeholder="MM/AA" maxlength="5" style="flex: 1; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--bg-dark); color: white; outline: none;">
+                             <input type="password" id="card-cvv-input" placeholder="CVV" maxlength="4" style="flex: 1; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--bg-dark); color: white; outline: none;">
+                         </div>
+                     </div>
+                     
+                     <div style="display: flex; gap: 10px; margin-top: 20px;">
+                         <button id="btn-cancel-card" class="action-btn secondary" style="flex: 1;">Annuler</button>
+                         <button id="btn-save-card" class="action-btn" style="flex: 1;">Enregistrer</button>
+                     </div>
+                 </div>
+             </div>
+ 
+             <!-- TRANSITION OVERLAY -->
+            <div id="page-transition-overlay" class="hidden"></div>
+
+            <div id="security-modal" class="modal-overlay hidden">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2>🔐 Coffre-fort</h2>
+                        <button class="modal-close" id="btn-close-security">✕</button>
+                    </div>
+                    <p style="font-size: 11px; margin-bottom: 15px;">Veuillez entrer votre Master Password.</p>
+                    <input type="password" id="master-password-input" placeholder="Master Password" autofocus>
+                    <button id="unlock-btn">Déverrouiller</button>
+                </div>
+            </div>
+
+            <!-- DOMUS HUB (MENU THÉMATIQUE) -->
+            <div id="domus-hub-modal" class="modal-overlay hidden">
+                <div class="hub-content">
+                    <div class="hub-header">
+                        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                            <h2>💠 Domus Hub</h2>
+                            <button class="modal-close" id="btn-close-hub-top">✕</button>
+                        </div>
+                        <div id="hub-bio-stats">
+                            <div class="bio-stat">🛡️ <span id="stat-trackers">0</span> bloqués</div>
+                            <div class="bio-stat">🚀 <span id="stat-ram">0</span> MB sauvés</div>
+                        </div>
+                    </div>
+                    
+                    <div class="theme-workshop">
+                        <p>Atelier des Thèmes</p>
+                        <div class="theme-picker">
+                            <div class="theme-dot active" data-theme="default" style="background: #00ff88;" title="Matrix"></div>
+                            <div class="theme-dot" data-theme="cyber" style="background: #ff00ff;" title="Cyberpunk"></div>
+                            <div class="theme-dot" data-theme="space" style="background: #00c6ff;" title="Deep Space"></div>
+                            <div class="theme-dot" data-theme="volcanic" style="background: #ff4d00;" title="Volcanic"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="hub-grid">
+                        <div class="hub-category">
+                            <h4>🏠 Navigation</h4>
+                            <div class="hub-items">
+                                <button class="hub-btn" data-panel="workspace">📁 Espaces</button>
+                                <button class="hub-btn" data-panel="favorites">⭐ Favoris</button>
+                                <button class="hub-btn" data-action="history">🕒 Historique</button>
+                            </div>
+                        </div>
+                        
+                        <div class="hub-category">
+                            <h4>🛡️ Sécurité</h4>
+                            <div class="hub-items">
+                                <button class="hub-btn" data-panel="password">🔐 Coffre-fort</button>
+                                <button class="hub-btn" data-panel="dataMap">🌍 Data Map</button>
+                                <button class="hub-btn" data-action="ecoShield">🛡️ Eco-Shield</button>
+                                <button class="hub-btn" data-action="securityAudit">🛡️ Audit Système</button>
+                            </div>
+                        </div>
+                        
+                        <div class="hub-category">
+                            <h4>🛠️ Outils</h4>
+                            <div class="hub-items">
+                                <button class="hub-btn" data-panel="timemachine">⌛ Time Machine</button>
+                                <button class="hub-btn" data-action="downloads">⬇️ Downloads</button>
+                                <button class="hub-btn" id="hub-btn-dev" style="display:none;">🛠️ Dev Studio</button>
+                            </div>
+                        </div>
+                        
+                        <div class="hub-category">
+                            <h4>🎭 Expérience</h4>
+                            <div class="hub-items">
+                                <button class="hub-btn" data-panel="audio">🎚️ Studio Audio</button>
+                                <button class="hub-btn" data-action="cinema">🎬 Cinéma</button>
+                                <button class="hub-btn" data-action="videoAI">⚡ Video AI</button>
+                                <button class="hub-btn" data-action="settings">⚙️ Réglages</button>
+                            </div>
+                        </div>
+                    </div>
+                    <button id="btn-close-hub" class="action-btn secondary">Fermer</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- BANDEAU D'ENREGISTREMENT DU COFFRE-FORT (STYLE DOMUS PASS) -->
+    <div id="domus-vault-save-prompt" class="save-prompt-overlay hidden">
+        <div class="save-prompt-content">
+            <span class="save-prompt-icon">🔐</span>
+            <div class="save-prompt-text">
+                <div class="save-prompt-title">Enregistrer dans Domus Vault ?</div>
+                <div id="save-prompt-desc" class="save-prompt-desc">Identifiants détectés pour ce site.</div>
+            </div>
+            <div class="save-prompt-actions">
+                <button id="btn-save-prompt-ignore" class="action-btn secondary small-btn">Ignorer</button>
+                <button id="btn-save-prompt-ok" class="action-btn small-btn">Enregistrer</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="renderer.js"></script>
+</body>
+</html>
