@@ -9,7 +9,7 @@ const securityManager = require('./security');
 const DomusUpdater = require('./updater');
 
 let domusUpdater = null;
-const DOMUS_VERSION = '1.0.8';
+const DOMUS_VERSION = '1.0.9';
 
 // CONFIGURATION DE RENDU ULTRA-FLUIDE ET HYPER-ÉCONOME (GPU BASSE CONSOMMATION)
 app.commandLine.appendSwitch('force-low-power-gpu'); // Force l'utilisation du GPU économe (iGPU) pour économiser l'énergie et éviter le dGPU dédié
@@ -1082,8 +1082,22 @@ app.on('web-contents-created', (event, contents) => {
             const defaultUA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36';
             let ua = defaultUA;
 
-            if (details.url.includes('accounts.google.com')) {
+            const urlLower = details.url.toLowerCase();
+            const isGoogleRelated = urlLower.includes('google') || 
+                                    urlLower.includes('gstatic') || 
+                                    urlLower.includes('youtube') || 
+                                    urlLower.includes('ggpht') ||
+                                    urlLower.includes('googleusercontent');
+
+            if (isGoogleRelated) {
                 ua = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:126.0) Gecko/20100101 Firefox/126.0';
+                
+                // Supprimer les Client Hints Chromium pour simuler Firefox à 100% de manière indétectable
+                for (const headerName in details.requestHeaders) {
+                    if (headerName.toLowerCase().startsWith('sec-ch-ua')) {
+                        delete details.requestHeaders[headerName];
+                    }
+                }
             }
 
             details.requestHeaders['User-Agent'] = ua;
