@@ -13,8 +13,18 @@ const GITHUB_OWNER  = 'gbaby448';
 const GITHUB_REPO   = 'Mon_Petit_Navigateur2';
 const GITHUB_API_URL = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`;
 
-// Chemin de dépôt du binaire téléchargé (appliqué au prochain démarrage)
-const UPDATE_DEST = path.join(__dirname, 'main.jsc.update');
+// ✅ Dossier de staging toujours accessible en écriture (AppData/Roaming)
+const UPDATE_STAGING_DIR = path.join(
+    process.env.APPDATA || path.join(require('os').homedir(), 'AppData', 'Roaming'),
+    'DomusPro'
+);
+const UPDATE_DEST = path.join(UPDATE_STAGING_DIR, 'main.jsc.update');
+
+// S'assurer que le dossier de staging existe
+if (!require('fs').existsSync(UPDATE_STAGING_DIR)) {
+    require('fs').mkdirSync(UPDATE_STAGING_DIR, { recursive: true });
+}
+
 
 class DomusUpdater {
     constructor(mainWindow) {

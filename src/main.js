@@ -764,7 +764,11 @@ function createWindow() {
     domusUpdater = new DomusUpdater(win);
 
     // 🎉 Toast post-MAJ : affiché une seule fois après une mise à jour réussie
-    const updateFlagPath = path.join(__dirname, 'just-updated.flag');
+    const UPDATE_STAGING_DIR = path.join(
+        process.env.APPDATA || path.join(require('os').homedir(), 'AppData', 'Roaming'),
+        'DomusPro'
+    );
+    const updateFlagPath = path.join(UPDATE_STAGING_DIR, 'just-updated.flag');
     win.webContents.once('did-finish-load', () => {
         if (fs.existsSync(updateFlagPath)) {
             try {

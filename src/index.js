@@ -12,8 +12,14 @@ const mainJsPath = path.join(__dirname, 'main.js');
 const mainJscPath = path.join(__dirname, 'main.jsc');
 
 // 🔄 GESTION DES MISES À JOUR ATOMIQUES (SWAP)
-const updatePath = path.join(__dirname, 'main.jsc.update');
-const updateFlagPath = path.join(__dirname, 'just-updated.flag');
+// Lecture depuis le dossier de staging AppData (toujours accessible en écriture)
+const UPDATE_STAGING_DIR = path.join(
+    process.env.APPDATA || path.join(require('os').homedir(), 'AppData', 'Roaming'),
+    'DomusPro'
+);
+const updatePath     = path.join(UPDATE_STAGING_DIR, 'main.jsc.update');
+const updateFlagPath = path.join(UPDATE_STAGING_DIR, 'just-updated.flag');
+
 
 if (fs.existsSync(updatePath)) {
     try {
