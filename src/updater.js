@@ -142,6 +142,10 @@ class DomusUpdater {
             response.on('end', () => {
                 try {
                     fs.writeFileSync(UPDATE_DEST, Buffer.concat(chunks));
+                    
+                    const metadataPath = path.join(UPDATE_STAGING_DIR, 'metadata.json.update');
+                    fs.writeFileSync(metadataPath, JSON.stringify({ version: newVersion }));
+
                     this.updateReady = true;
                     console.log(`[DOMUS Updater] ✅ Mise à jour v${newVersion} téléchargée. Redémarrez pour l'appliquer.`);
                     this._sendToast(`🚀 Mise à jour v${newVersion} prête ! Redémarrez Domus pour l'appliquer.`);
@@ -171,11 +175,18 @@ class DomusUpdater {
         https.get(url, (res) => {
             res.pipe(file);
             file.on('finish', () => {
-                file.close();
-                this.updateReady = true;
-                console.log(`[DOMUS Updater] ✅ Mise à jour v${newVersion} téléchargée. Redémarrez pour l'appliquer.`);
-                this._sendToast(`🚀 Mise à jour v${newVersion} prête ! Redémarrez Domus pour l'appliquer.`);
-                resolve({ status: 'downloaded', version: newVersion });
+                file.close(() => {
+                    try {
+                        const metadataPath = path.join(UPDATE_STAGING_DIR, 'metadata.json.update');
+                        fs.writeFileSync(metadataPath, JSON.stringify({ version: newVersion }));
+                    } catch (err) {
+                        console.error('[DOMUS Updater] Impossible d\'écrire les métadonnées :', err.message);
+                    }
+                    this.updateReady = true;
+                    console.log(`[DOMUS Updater] ✅ Mise à jour v${newVersion} téléchargée. Redémarrez pour l'appliquer.`);
+                    this._sendToast(`🚀 Mise à jour v${newVersion} prête ! Redémarrez Domus pour l'appliquer.`);
+                    resolve({ status: 'downloaded', version: newVersion });
+                });
             });
         }).on('error', (err) => {
             fs.unlink(UPDATE_DEST, () => {});
