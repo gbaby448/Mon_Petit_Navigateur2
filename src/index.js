@@ -13,11 +13,15 @@ const mainJscPath = path.join(__dirname, 'main.jsc');
 
 // 🔄 GESTION DES MISES À JOUR ATOMIQUES (SWAP)
 const updatePath = path.join(__dirname, 'main.jsc.update');
+const updateFlagPath = path.join(__dirname, 'just-updated.flag');
+
 if (fs.existsSync(updatePath)) {
     try {
         console.log("[DOMUS] Application d'une mise à jour système...");
         if (fs.existsSync(mainJscPath)) fs.unlinkSync(mainJscPath);
         fs.renameSync(updatePath, mainJscPath);
+        // 🏁 Écrire le drapeau "vient d'être mis à jour" pour afficher le toast au démarrage
+        fs.writeFileSync(updateFlagPath, JSON.stringify({ updatedAt: new Date().toISOString() }));
         console.log("[DOMUS] Mise à jour installée avec succès.");
     } catch (err) {
         console.error("[DOMUS] Échec de l'application de la mise à jour :", err.message);

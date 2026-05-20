@@ -762,6 +762,26 @@ function createWindow() {
 
     // --- MOTEUR DE MISE À JOUR GITHUB (vérification silencieuse au démarrage) ---
     domusUpdater = new DomusUpdater(win);
+
+    // 🎉 Toast post-MAJ : affiché une seule fois après une mise à jour réussie
+    const updateFlagPath = path.join(__dirname, 'just-updated.flag');
+    win.webContents.once('did-finish-load', () => {
+        if (fs.existsSync(updateFlagPath)) {
+            try {
+                const newVersion = app.getVersion();
+                setTimeout(() => {
+                    if (win && !win.isDestroyed()) {
+                        win.webContents.send('show-float-toast', `🎉 Domus mis à jour vers v${newVersion} ! Bienvenue dans la nouvelle version.`);
+                    }
+                }, 2500);
+                fs.unlinkSync(updateFlagPath); // Supprimer le drapeau pour ne pas le revoir
+                console.log(`[DOMUS] Toast post-MAJ affiché pour la v${newVersion}.`);
+            } catch (e) {
+                console.error('[DOMUS] Erreur toast post-MAJ :', e.message);
+            }
+        }
+    });
+
     setTimeout(() => {
         domusUpdater.checkForUpdates().then(result => {
             console.log('[DOMUS Updater] Statut:', result.status);
