@@ -759,11 +759,7 @@
                             </div>
                         </div>
                         <div class="row">
-                            <div class="row-info">
-                                <span class="row-title">Z-Index Explorer 3D</span>
-                                <span class="row-desc">Quoi : Vue 3D éclatée des couches de la page.<br>Quand : Pour résoudre les problèmes d'empilement CSS.</span>
-                            </div>
-                            <div class="row-control">
+                    <div class="row-control">
                                 <label class="switch"><input type="checkbox" id="dev3D"><span class="slider"></span></label>
                             </div>
                         </div>
@@ -777,9 +773,31 @@
                 <div class="card" style="text-align: center; padding: 60px 20px;">
                     <div style="font-size: 5rem; margin-bottom: 20px;">🌐</div>
                     <h2 style="margin: 0; color: white; font-size: 2rem;">DOMUS BROWSER</h2>
-                    <p style="color: var(--accent); font-weight: 800; margin-top: 15px;">Version 1.0.1-Pro</p>
-                    <p style="color: var(--text-dim); font-size: 0.8rem; margin-top: 10px;">Propulsé par Chromium Engine
-                        & PortalCore Tech</p>
+                    <p style="color: var(--accent); font-weight: 800; margin-top: 15px;" id="about-version">Version 1.0.1-Pro</p>
+                    <p style="color: var(--text-dim); font-size: 0.8rem; margin-top: 10px;">Propulsé par Chromium Engine &amp; PortalCore Tech</p>
+
+                    <!-- === ZONE DE MISE À JOUR === -->
+                    <div style="margin-top: 36px; display: flex; flex-direction: column; align-items: center; gap: 14px;">
+                        <button class="btn btn-primary" id="check-update-btn" style="
+                            display: flex; align-items: center; gap: 10px; padding: 12px 28px;
+                            font-size: 0.95rem; font-weight: 700; letter-spacing: 0.5px;
+                            border: 1.5px solid var(--accent); border-radius: 12px;
+                            background: rgba(0,255,136,0.08); color: var(--accent);
+                            cursor: pointer; transition: all 0.2s;">
+                            <span id="update-btn-icon">🔍</span>
+                            <span id="update-btn-label">Vérifier les mises à jour</span>
+                        </button>
+
+                        <!-- Badge de statut dynamique -->
+                        <div id="updater-status" style="
+                            display: none; align-items: center; gap: 8px;
+                            padding: 10px 20px; border-radius: 10px; font-size: 0.85rem; font-weight: 600;
+                            border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.04);">
+                            <span id="updater-status-icon">ℹ️</span>
+                            <span id="updater-status-text">—</span>
+                        </div>
+                    </div>
+
                     <div style="margin-top: 40px;">
                         <button class="btn btn-danger" id="reset-factory-btn">Réinitialiser Domus</button>
                     </div>
@@ -985,10 +1003,86 @@
             }
         }, 3000);
 
+        // ============================================================
+        // --- SYSTÈME DE MISE À JOUR GITHUB ---
+        // ============================================================
+        const checkUpdateBtn  = document.getElementById('check-update-btn');
+        const updateBtnIcon   = document.getElementById('update-btn-icon');
+        const updateBtnLabel  = document.getElementById('update-btn-label');
+        const updaterStatus   = document.getElementById('updater-status');
+        const updaterStatusIcon = document.getElementById('updater-status-icon');
+        const updaterStatusText = document.getElementById('updater-status-text');
+
+        function showUpdateStatus(icon, text, color = 'rgba(255,255,255,0.1)') {
+            updaterStatusIcon.textContent = icon;
+            updaterStatusText.textContent = text;
+            updaterStatus.style.display   = 'flex';
+            updaterStatus.style.borderColor = color;
+        }
+
+        function resetUpdateBtn() {
+            checkUpdateBtn.disabled       = false;
+            checkUpdateBtn.style.opacity  = '1';
+            updateBtnIcon.textContent     = '🔍';
+            updateBtnLabel.textContent    = 'Vérifier les mises à jour';
+        }
+
+        checkUpdateBtn?.addEventListener('click', async () => {
+            if (!window.domusAPI?.checkForUpdates) return;
+
+            // État : Recherche en cours
+            checkUpdateBtn.disabled       = true;
+            checkUpdateBtn.style.opacity  = '0.6';
+            updateBtnIcon.textContent     = '⏳';
+            updateBtnLabel.textContent    = 'Vérification en cours...';
+            updaterStatus.style.display   = 'none';
+
+            try {
+                const result = await window.domusAPI.checkForUpdates();
+
+                switch (result.status) {
+                    case 'up-to-date':
+                        showUpdateStatus('✅', `Domus v${result.version} est déjà à jour !`, 'rgba(0,255,136,0.3)');
+                        break;
+                    case 'downloaded':
+                        showUpdateStatus('🚀', `Mise à jour v${result.version} prête ! Redémarrez Domus.`, 'rgba(0,200,255,0.4)');
+                        updateBtnIcon.textContent   = '🔄';
+                        updateBtnLabel.textContent  = 'Redémarrez pour terminer';
+                        checkUpdateBtn.disabled = false;
+                        checkUpdateBtn.style.opacity = '1';
+                        return; // Ne pas réinitialiser le bouton
+                    case 'busy':
+                        showUpdateStatus('⏳', 'Vérification déjà en cours...', 'rgba(255,200,0,0.3)');
+                        break;
+                    case 'error':
+                    default:
+                        showUpdateStatus('❌', result.message || 'Erreur lors de la vérification.', 'rgba(255,59,48,0.3)');
+                        break;
+                }
+            } catch (e) {
+                showUpdateStatus('❌', 'Impossible de contacter GitHub.', 'rgba(255,59,48,0.3)');
+            }
+
+            resetUpdateBtn();
+        });
+
+        // Charger la version réelle depuis le processus Electron
+        async function loadAppVersion() {
+            if (window.domusAPI?.getAppVersion) {
+                try {
+                    const version = await window.domusAPI.getAppVersion();
+                    const el = document.getElementById('about-version');
+                    if (el && version) el.textContent = `Version ${version}-Pro`;
+                } catch(e) {}
+            }
+        }
+
         window.addEventListener('DOMContentLoaded', () => {
             loadSettings();
             loadArchives();
+            loadAppVersion();
         });
+
     </script>
 </body>
 

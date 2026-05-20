@@ -5,7 +5,7 @@ const isSystemPage = window.location.protocol === 'file:' || window.location.pro
 if (isSystemPage) {
     // --- CONTEXTE SYSTÈME DE CONFIANCE (DOMUS UI) ---
     contextBridge.exposeInMainWorld('domusAPI', {
-        getAppVersion: () => "1.0.0",
+        getAppVersion: () => ipcRenderer.invoke('get-app-version'),
 
         // --- NAVIGATION ---
         navigate: (url) => ipcRenderer.send('navigate-to', url),
@@ -65,6 +65,9 @@ if (isSystemPage) {
         onPageSnapshot: (callback) => ipcRenderer.on('page-snapshot', (event, url) => callback(url)),
         onFloatToast: (callback) => ipcRenderer.on('show-float-toast', (event, msg) => callback(msg)),
         onShowSavePrompt: (callback) => ipcRenderer.on('show-save-prompt', (event, data) => callback(data)),
+
+        // --- MISES À JOUR GITHUB ---
+        checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
 
         // --- PHASE 2 : WIZARD & MIGRATION ---
         checkHardwareFeatures: () => ipcRenderer.invoke('check-hardware-features'),

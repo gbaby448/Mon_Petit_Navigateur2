@@ -6,6 +6,9 @@ const { exec } = require('child_process');
 const { Worker } = require('worker_threads');
 const dns = require('dns');
 const securityManager = require('./security');
+const DomusUpdater = require('./updater');
+
+let domusUpdater = null;
 
 // CONFIGURATION DE RENDU ULTRA-FLUIDE ET HYPER-ÉCONOME (GPU BASSE CONSOMMATION)
 app.commandLine.appendSwitch('force-low-power-gpu'); // Force l'utilisation du GPU économe (iGPU) pour économiser l'énergie et éviter le dGPU dédié
@@ -61,6 +64,8 @@ const saveData = (p, d) => {
 // --- PERSISTENCE & SETTINGS ---
 ipcMain.handle('get-settings', () => loadData(settingsPath, { theme: 'dark', accentColor: '#00ff88', searchEngine: 'google', securitySetup: false }));
 ipcMain.handle('save-settings', (e, s) => { saveData(settingsPath, s); return true; });
+ipcMain.handle('get-app-version', () => app.getVersion());
+
 
 // --- SÉCURITÉ & TPM ---
 ipcMain.handle('check-tpm-status', async () => {
@@ -754,6 +759,14 @@ function createWindow() {
     });
 
     win.loadFile(path.join(__dirname, 'index.html'));
+
+    // --- MOTEUR DE MISE À JOUR GITHUB (vérification silencieuse au démarrage) ---
+    domusUpdater = new DomusUpdater(win);
+    setTimeout(() => {
+        domusUpdater.checkForUpdates().then(result => {
+            console.log('[DOMUS Updater] Statut:', result.status);
+        });
+    }, 10000); // Vérification 10 secondes après le démarrage
 }
 
 // --- SERVICES DE CRYPTOGRAPHIE AVANCÉS ---
@@ -1043,6 +1056,12 @@ app.on('certificate-error', (event, webContents, url, error, certificate, callba
         }
     }
     callback(true); // Permet d'accéder au site après avertissement
+});
+
+// --- IPC : Vérification manuelle depuis la page Paramètres ---
+ipcMain.handle('check-for-updates', async () => {
+    if (!domusUpdater) return { status: 'error', message: 'Moteur de mise à jour non initialisé.' };
+    return await domusUpdater.checkForUpdates();
 });
 
 app.whenReady().then(createWindow);

@@ -3,94 +3,183 @@ const fs = require('fs');
 const path = require('path');
 
 /**
- * Domus Cloud Updater - Pro Engine
- * Gère les mises à jour silencieuses du bytecode (.jsc)
+ * ============================================================
+ *  DOMUS CLOUD UPDATER - GitHub Releases Engine v1.0
+ *  Mise à jour silencieuse et atomique via GitHub Releases API
+ * ============================================================
  */
 
-// URL de distribution (GitHub / S3 / VPS). Pour l'instant on reste en local pour tes tests ROG.
-const UPDATE_URL = "http://localhost:3000/check"; 
-const VERSION_FILE = path.join(__dirname, 'version.json');
+const GITHUB_OWNER  = 'gbaby448';
+const GITHUB_REPO   = 'Mon_Petit_Navigateur2';
+const GITHUB_API_URL = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`;
+
+// Chemin de dépôt du binaire téléchargé (appliqué au prochain démarrage)
+const UPDATE_DEST = path.join(__dirname, 'main.jsc.update');
 
 class DomusUpdater {
     constructor(mainWindow) {
         this.win = mainWindow;
         this.isChecking = false;
+        this.updateReady = false;
     }
 
-    async checkForUpdates() {
-        if (this.isChecking) return;
-        this.isChecking = true;
-
-        console.log("[UPDATER] Vérification des mises à jour...");
-        
-        return new Promise((resolve) => {
-            const req = net.request(UPDATE_URL);
-            
-            req.on('response', (response) => {
-                let data = '';
-                response.on('data', (chunk) => { data += chunk; });
-                response.on('end', () => {
-                    try {
-                        const remote = JSON.parse(data);
-                        const localVersion = app.getVersion();
-                        
-                        if (this.isNewer(remote.version, localVersion)) {
-                            console.log(`[UPDATER] Nouvelle version détectée : ${remote.version}`);
-                            this.downloadUpdate(remote.url);
-                        } else {
-                            console.log("[UPDATER] Domus est à jour.");
-                        }
-                    } catch (e) {
-                        console.error("[UPDATER] Erreur lors de l'analyse du fichier de version.");
-                    }
-                    this.isChecking = false;
-                    resolve();
-                });
-            });
-
-            req.on('error', (err) => {
-                console.error("[UPDATER] Serveur de mise à jour injoignable.");
-                this.isChecking = false;
-                resolve();
-            });
-            
-            req.end();
-        });
-    }
-
+    /**
+     * Compare deux versions sémantiques "x.y.z".
+     * Retourne true si `remote` est plus récent que `local`.
+     */
     isNewer(remote, local) {
-        const r = remote.split('.').map(Number);
-        const l = local.split('.').map(Number);
-        for (let i = 0; i < 4; i++) {
-            if (r[i] > l[i]) return true;
-            if (r[i] < l[i]) return false;
+        const clean = v => v.replace(/^v/i, '').split('.').map(Number);
+        const r = clean(remote);
+        const l = clean(local);
+        for (let i = 0; i < Math.max(r.length, l.length); i++) {
+            const rv = r[i] || 0, lv = l[i] || 0;
+            if (rv > lv) return true;
+            if (rv < lv) return false;
         }
         return false;
     }
 
-    downloadUpdate(url) {
-        const dest = path.join(__dirname, 'main.jsc.update');
-        const req = net.request(url);
-        
-        req.on('response', (response) => {
-            const fileStream = fs.createWriteStream(dest);
-            response.on('data', (chunk) => {
-                fileStream.write(chunk);
+    /**
+     * Interroge l'API GitHub Releases pour obtenir la dernière version.
+     * Retourne un objet { upToDate, newVersion, downloadUrl } ou { error }.
+     */
+    async checkForUpdates() {
+        if (this.isChecking) return { status: 'busy' };
+        this.isChecking = true;
+
+        console.log('[DOMUS Updater] Vérification des mises à jour via GitHub...');
+
+        return new Promise((resolve) => {
+            const req = net.request({
+                url: GITHUB_API_URL,
+                headers: {
+                    'User-Agent': `DomusBrowser/${app.getVersion()}`,
+                    'Accept': 'application/vnd.github.v3+json'
+                }
             });
+
+            let body = '';
+
+            req.on('response', (response) => {
+                response.on('data', (chunk) => { body += chunk.toString(); });
+                response.on('end', () => {
+                    this.isChecking = false;
+                    try {
+                        const release = JSON.parse(body);
+
+                        if (!release.tag_name) {
+                            console.warn('[DOMUS Updater] Réponse GitHub invalide ou aucune release trouvée.');
+                            return resolve({ status: 'error', message: 'Aucune release trouvée sur GitHub.' });
+                        }
+
+                        const remoteVersion = release.tag_name.replace(/^v/i, '');
+                        const localVersion  = app.getVersion();
+
+                        console.log(`[DOMUS Updater] Local: v${localVersion} | Distant: v${remoteVersion}`);
+
+                        if (!this.isNewer(remoteVersion, localVersion)) {
+                            console.log('[DOMUS Updater] Domus est déjà à jour. ✅');
+                            return resolve({ status: 'up-to-date', version: localVersion });
+                        }
+
+                        // Chercher le fichier main.jsc dans les assets de la release
+                        const asset = (release.assets || []).find(a => a.name === 'main.jsc');
+                        if (!asset) {
+                            console.warn('[DOMUS Updater] La release GitHub ne contient pas de fichier main.jsc.');
+                            return resolve({ status: 'error', message: 'Fichier main.jsc absent de la release GitHub.' });
+                        }
+
+                        console.log(`[DOMUS Updater] Nouvelle version v${remoteVersion} disponible ! Téléchargement...`);
+
+                        // Notifier l'UI que le téléchargement commence
+                        this._sendToast(`⬇️ Mise à jour v${remoteVersion} en cours de téléchargement...`);
+
+                        this._download(asset.browser_download_url, remoteVersion, resolve);
+
+                    } catch (e) {
+                        console.error('[DOMUS Updater] Erreur de parsing JSON GitHub :', e.message);
+                        resolve({ status: 'error', message: 'Réponse GitHub illisible.' });
+                    }
+                });
+            });
+
+            req.on('error', (err) => {
+                this.isChecking = false;
+                console.error('[DOMUS Updater] Serveur GitHub injoignable :', err.message);
+                resolve({ status: 'error', message: 'Impossible de contacter GitHub. Vérifiez votre connexion.' });
+            });
+
+            req.end();
+        });
+    }
+
+    /**
+     * Télécharge le binaire de mise à jour depuis GitHub Releases.
+     */
+    _download(url, newVersion, resolve) {
+        const req = net.request({ url, headers: { 'User-Agent': `DomusBrowser/${app.getVersion()}` } });
+
+        req.on('response', (response) => {
+            // GitHub redirige vers son CDN - gérer la redirection manuellement si nécessaire
+            if (response.statusCode === 302 || response.statusCode === 301) {
+                const redirectUrl = response.headers['location'];
+                if (redirectUrl) return this._downloadDirect(redirectUrl, newVersion, resolve);
+            }
+
+            const chunks = [];
+            response.on('data', (chunk) => chunks.push(chunk));
             response.on('end', () => {
-                fileStream.end();
-                console.log("[UPDATER] Mise à jour téléchargée. Elle sera appliquée au prochain démarrage.");
-                if (this.win && !this.win.isDestroyed()) {
-                    this.win.webContents.send('show-float-toast', "🚀 Mise à jour Domus prête ! Redémarrez pour l'appliquer.");
+                try {
+                    fs.writeFileSync(UPDATE_DEST, Buffer.concat(chunks));
+                    this.updateReady = true;
+                    console.log(`[DOMUS Updater] ✅ Mise à jour v${newVersion} téléchargée. Redémarrez pour l'appliquer.`);
+                    this._sendToast(`🚀 Mise à jour v${newVersion} prête ! Redémarrez Domus pour l'appliquer.`);
+                    resolve({ status: 'downloaded', version: newVersion });
+                } catch (e) {
+                    console.error('[DOMUS Updater] Impossible d\'écrire le fichier de mise à jour :', e.message);
+                    resolve({ status: 'error', message: 'Échec de l\'écriture de la mise à jour.' });
                 }
             });
         });
-        
+
         req.on('error', (err) => {
-            console.error("[UPDATER] Échec du téléchargement.");
+            console.error('[DOMUS Updater] Échec du téléchargement :', err.message);
+            resolve({ status: 'error', message: 'Échec du téléchargement de la mise à jour.' });
         });
-        
+
         req.end();
+    }
+
+    /**
+     * Téléchargement direct depuis une URL CDN (après redirection GitHub).
+     */
+    _downloadDirect(url, newVersion, resolve) {
+        const https = require('https');
+        const file = fs.createWriteStream(UPDATE_DEST);
+
+        https.get(url, (res) => {
+            res.pipe(file);
+            file.on('finish', () => {
+                file.close();
+                this.updateReady = true;
+                console.log(`[DOMUS Updater] ✅ Mise à jour v${newVersion} téléchargée. Redémarrez pour l'appliquer.`);
+                this._sendToast(`🚀 Mise à jour v${newVersion} prête ! Redémarrez Domus pour l'appliquer.`);
+                resolve({ status: 'downloaded', version: newVersion });
+            });
+        }).on('error', (err) => {
+            fs.unlink(UPDATE_DEST, () => {});
+            console.error('[DOMUS Updater] Erreur CDN :', err.message);
+            resolve({ status: 'error', message: 'Erreur lors du téléchargement CDN.' });
+        });
+    }
+
+    /**
+     * Envoie une notification toast à la fenêtre principale.
+     */
+    _sendToast(msg) {
+        if (this.win && !this.win.isDestroyed()) {
+            this.win.webContents.send('show-float-toast', msg);
+        }
     }
 }
 
