@@ -345,7 +345,22 @@ document.addEventListener('DOMContentLoaded', () => {
             // Configuration Pro du Webview
             wv.setAttribute('preload', './preload.js');
             wv.setAttribute('webpreferences', 'contextIsolation=yes');
-            wv.setAttribute('useragent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36');
+            const defaultUA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36';
+            wv.setAttribute('useragent', defaultUA);
+            
+            wv.addEventListener('did-start-navigation', (e) => {
+                try {
+                    const url = e.url || '';
+                    if (url.includes('accounts.google.com')) {
+                        wv.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:126.0) Gecko/20100101 Firefox/126.0');
+                    } else {
+                        wv.setUserAgent(defaultUA);
+                    }
+                } catch (err) {
+                    console.error("[DOMUS UA] Error switching UA:", err);
+                }
+            });
+
             if (data.isShadow) {
                 wv.setAttribute('partition', `temp:shadow-${data.id}`);
             }
