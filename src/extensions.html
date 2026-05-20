@@ -480,6 +480,94 @@
             background-color: #050506;
         }
 
+        /* --- CATALOGUE / STORE --- */
+        .catalog-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+        .catalog-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .catalog-header h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .catalog-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 18px;
+        }
+        .catalog-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 12px;
+            transition: var(--transition);
+        }
+        .catalog-card:hover {
+            border-color: var(--accent);
+            box-shadow: 0 4px 16px rgba(0, 255, 136, 0.05);
+            transform: translateY(-2px);
+        }
+        .catalog-top {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        .catalog-icon {
+            font-size: 1.8rem;
+            width: 42px;
+            height: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+        .catalog-title-group {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .catalog-name {
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: white;
+        }
+        .catalog-author {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+        }
+        .catalog-desc {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            line-height: 1.35;
+            min-height: 48px;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
         /* --- EMPTY STATE --- */
         .empty-state {
             grid-column: 1 / -1;
@@ -504,23 +592,27 @@
             font-size: 1.2rem;
             margin-bottom: 8px;
         }
+
     </style>
 </head>
 
 <body>
-
+ 
     <header>
         <div class="header-content">
             <div class="title-area">
                 <span class="icon-title">🧩</span>
                 <h1>Extensions Domus Engine</h1>
             </div>
-            <div class="header-actions">
+            <div class="header-actions" style="display: flex; gap: 10px;">
+                <button class="btn secondary" id="btn-open-cws" style="border-color: #4285f4; color: #4285f4; background: rgba(66, 133, 244, 0.05); font-weight: 700;">
+                    🌐 Ouvrir Chrome Web Store
+                </button>
                 <button class="btn secondary" id="btn-devmode-info">Developer Mode : ON</button>
             </div>
         </div>
     </header>
-
+ 
     <main>
         <div class="content-container">
             <!-- PANEL D'INSTALLATION -->
@@ -537,7 +629,7 @@
                         </button>
                     </div>
                 </div>
-
+ 
                 <!-- Section Extension Locale -->
                 <div class="install-section" style="justify-content: space-between;">
                     <div>
@@ -550,11 +642,89 @@
                 </div>
             </div>
 
+            <!-- CATALOGUE RECOMMANDÉ -->
+            <div class="catalog-container">
+                <div class="catalog-header">
+                    <h3>Bibliothèque d'Extensions Domus</h3>
+                    <p style="font-size: 0.85rem; color: var(--text-dim); margin: 0;">Sélection d'outils optimisés à installer en un clic.</p>
+                </div>
+                <div class="catalog-grid" id="catalog-list">
+                    <!-- Les extensions recommandées -->
+                    <div class="catalog-card" data-id="cjpalhdlnbpafiamejdnhcphjbkeiame">
+                        <div class="catalog-top">
+                            <span class="catalog-icon">🛡️</span>
+                            <div class="catalog-title-group">
+                                <span class="catalog-name">uBlock Origin</span>
+                                <span class="catalog-author">Par Raymond Hill</span>
+                            </div>
+                        </div>
+                        <p class="catalog-desc">Un bloqueur de pub rapide, efficace et économe en mémoire RAM. Bloque les traqueurs et publicités nuisibles.</p>
+                        <button class="btn btn-catalog-install" onclick="installFromCatalog('cjpalhdlnbpafiamejdnhcphjbkeiame', this)">Installer</button>
+                    </div>
+                    <div class="catalog-card" data-id="eimadpcaljkjehhjcbhgahfgjphggjbd">
+                        <div class="catalog-top">
+                            <span class="catalog-icon">🌙</span>
+                            <div class="catalog-title-group">
+                                <span class="catalog-name">Dark Reader</span>
+                                <span class="catalog-author">Par darkreader.org</span>
+                            </div>
+                        </div>
+                        <p class="catalog-desc">Mode sombre automatique pour tous les sites web. Protégez vos yeux en appliquant des thèmes sombres et élégants.</p>
+                        <button class="btn btn-catalog-install" onclick="installFromCatalog('eimadpcaljkjehhjcbhgahfgjphggjbd', this)">Installer</button>
+                    </div>
+                    <div class="catalog-card" data-id="aapocclgdofooolggaplbeecnnagdfga">
+                        <div class="catalog-top">
+                            <span class="catalog-icon">🌐</span>
+                            <div class="catalog-title-group">
+                                <span class="catalog-name">Google Traduction</span>
+                                <span class="catalog-author">Par Google</span>
+                            </div>
+                        </div>
+                        <p class="catalog-desc">Traduisez instantanément des mots, des phrases ou des pages web entières dans plus de 100 langues.</p>
+                        <button class="btn btn-catalog-install" onclick="installFromCatalog('aapocclgdofooolggaplbeecnnagdfga', this)">Installer</button>
+                    </div>
+                    <div class="catalog-card" data-id="mnjooaebdmacjoecanknpolhgpaedmbc">
+                        <div class="catalog-top">
+                            <span class="catalog-icon">🎬</span>
+                            <div class="catalog-title-group">
+                                <span class="catalog-name">SponsorBlock</span>
+                                <span class="catalog-author">Par ajay.app</span>
+                            </div>
+                        </div>
+                        <p class="catalog-desc">Passez automatiquement les segments sponsorisés, intros, rappels d'abonnement et intermèdes sur YouTube.</p>
+                        <button class="btn btn-catalog-install" onclick="installFromCatalog('mnjooaebdmacjoecanknpolhgpaedmbc', this)">Installer</button>
+                    </div>
+                    <div class="catalog-card" data-id="dhdgffkkebhmkfjojejmpbldmpobfkfo">
+                        <div class="catalog-top">
+                            <span class="catalog-icon">🐒</span>
+                            <div class="catalog-title-group">
+                                <span class="catalog-name">Tampermonkey</span>
+                                <span class="catalog-author">Par Jan Biniok</span>
+                            </div>
+                        </div>
+                        <p class="catalog-desc">Le gestionnaire d'userscripts le plus populaire pour personnaliser l'affichage et les fonctionnalités des sites web.</p>
+                        <button class="btn btn-catalog-install" onclick="installFromCatalog('dhdgffkkebhmkfjojejmpbldmpobfkfo', this)">Installer</button>
+                    </div>
+                    <div class="catalog-card" data-id="nngceckbapebfimnlniiiahkcoobdackm">
+                        <div class="catalog-top">
+                            <span class="catalog-icon">🔑</span>
+                            <div class="catalog-title-group">
+                                <span class="catalog-name">Bitwarden</span>
+                                <span class="catalog-author">Par Bitwarden</span>
+                            </div>
+                        </div>
+                        <p class="catalog-desc">Un gestionnaire de mots de passe open-source sécurisé pour synchroniser vos identifiants sur tous vos appareils.</p>
+                        <button class="btn btn-catalog-install" onclick="installFromCatalog('nngceckbapebfimnlniiiahkcoobdackm', this)">Installer</button>
+                    </div>
+                </div>
+            </div>
+ 
             <!-- LISTE DES EXTENSIONS -->
             <div class="section-title">
                 <span>Extensions installées</span>
                 <span id="extensions-count" style="font-size: 0.85rem; color: var(--accent);">0 active(s)</span>
             </div>
+      </div>
 
             <div class="extension-grid" id="extensions-list">
                 <!-- Les cartes d'extensions seront injectées ici dynamiquement -->
@@ -653,6 +823,79 @@
                     </div>
                 `;
                 grid.appendChild(card);
+            });
+
+            // Mettre à jour les boutons du catalogue
+            updateCatalogButtons(extensions);
+        }
+
+        // --- METTRE À JOUR LES BOUTONS DU CATALOGUE DE LA BIBLIOTHÈQUE ---
+        function updateCatalogButtons(installedExtensions) {
+            const installedIds = installedExtensions.map(ext => ext.id);
+            const catalogCards = document.querySelectorAll('.catalog-card');
+            
+            catalogCards.forEach(card => {
+                const extId = card.getAttribute('data-id');
+                const btn = card.querySelector('.btn-catalog-install');
+                
+                if (btn) {
+                    if (installedIds.includes(extId)) {
+                        btn.innerHTML = '<span>Installée ✅</span>';
+                        btn.disabled = true;
+                        btn.style.background = 'rgba(255, 255, 255, 0.05)';
+                        btn.style.color = 'var(--accent)';
+                        btn.style.borderColor = 'var(--border)';
+                        btn.style.cursor = 'default';
+                        btn.style.boxShadow = 'none';
+                        btn.style.transform = 'none';
+                    } else {
+                        btn.innerHTML = '<span>Installer</span>';
+                        btn.disabled = false;
+                        btn.style.background = 'var(--accent)';
+                        btn.style.color = '#050506';
+                        btn.style.borderColor = 'transparent';
+                        btn.style.cursor = 'pointer';
+                    }
+                }
+            });
+        }
+
+        // --- ACTION CATALOGUE ---
+        window.installFromCatalog = async (id, btn) => {
+            if (btn.disabled) return;
+            
+            btn.disabled = true;
+            btn.innerHTML = '<div class="spinner" style="display:inline-block; border-top-color:#050506; border-left-color:transparent; margin-right:5px;"></div><span>Installation...</span>';
+            
+            try {
+                if (window.domusAPI && window.domusAPI.installExtensionFromCWS) {
+                    const result = await window.domusAPI.installExtensionFromCWS(id);
+                    if (result.success) {
+                        showToast(`Extension "${result.extension.name}" installée avec succès !`);
+                        loadExtensions();
+                    } else {
+                        showToast("Échec : " + result.error, "error");
+                        loadExtensions(); // Restaurer l'état
+                    }
+                } else {
+                    showToast("API système non disponible", "error");
+                    loadExtensions();
+                }
+            } catch (err) {
+                showToast("Erreur inattendue : " + err.message, "error");
+                loadExtensions();
+            }
+        };
+
+        // Bouton d'ouverture du Chrome Web Store externe
+        const btnOpenCws = document.getElementById('btn-open-cws');
+        if (btnOpenCws) {
+            btnOpenCws.addEventListener('click', () => {
+                if (window.domusAPI && window.domusAPI.newTab) {
+                    window.domusAPI.newTab("https://chromewebstore.google.com");
+                } else {
+                    showToast("API newTab non disponible", "error");
+                }
             });
         }
 
