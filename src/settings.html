@@ -1028,6 +1028,14 @@
         }
 
         checkUpdateBtn?.addEventListener('click', async () => {
+            // Si la mise à jour est déjà téléchargée, on redémarre à chaud
+            if (updateBtnLabel.textContent === 'Redémarrer pour terminer') {
+                if (window.domusAPI?.relaunchApp) {
+                    window.domusAPI.relaunchApp();
+                }
+                return;
+            }
+
             if (!window.domusAPI?.checkForUpdates) return;
 
             // État : Recherche en cours

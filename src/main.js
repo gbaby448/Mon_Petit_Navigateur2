@@ -9,7 +9,7 @@ const securityManager = require('./security');
 const DomusUpdater = require('./updater');
 
 let domusUpdater = null;
-const DOMUS_VERSION = '1.0.4';
+const DOMUS_VERSION = '1.0.5';
 
 // CONFIGURATION DE RENDU ULTRA-FLUIDE ET HYPER-ÉCONOME (GPU BASSE CONSOMMATION)
 app.commandLine.appendSwitch('force-low-power-gpu'); // Force l'utilisation du GPU économe (iGPU) pour économiser l'énergie et éviter le dGPU dédié
@@ -1087,6 +1087,11 @@ app.on('certificate-error', (event, webContents, url, error, certificate, callba
 ipcMain.handle('check-for-updates', async () => {
     if (!domusUpdater) return { status: 'error', message: 'Moteur de mise à jour non initialisé.' };
     return await domusUpdater.checkForUpdates();
+});
+
+ipcMain.on('relaunch-app', () => {
+    app.relaunch();
+    app.quit();
 });
 
 app.whenReady().then(createWindow);
