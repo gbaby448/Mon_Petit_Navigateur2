@@ -9,7 +9,7 @@ const securityManager = require('./security');
 const DomusUpdater = require('./updater');
 
 let domusUpdater = null;
-const DOMUS_VERSION = '1.0.7';
+const DOMUS_VERSION = '1.0.8';
 
 // CONFIGURATION DE RENDU ULTRA-FLUIDE ET HYPER-ÉCONOME (GPU BASSE CONSOMMATION)
 app.commandLine.appendSwitch('force-low-power-gpu'); // Force l'utilisation du GPU économe (iGPU) pour économiser l'énergie et éviter le dGPU dédié
@@ -1062,11 +1062,34 @@ ipcMain.handle('open-file', (e, filePath) => {
     return { success: false };
 });
 
+// Variable globale pour stocker les sessions configurées
+const configuredSessions = new Set();
+
 app.on('web-contents-created', (event, contents) => {
     contents.setWindowOpenHandler(({ url }) => {
         win.webContents.send('tab-created', { id: `tab-${tabCounter++}`, url, active: true });
         return { action: 'deny' };
     });
+
+    const sess = contents.session;
+    if (sess && !configuredSessions.has(sess)) {
+        configuredSessions.add(sess);
+        sess.webRequest.onBeforeSendHeaders((details, callback) => {
+            if (!details.url.startsWith('http')) {
+                return callback({ requestHeaders: details.requestHeaders });
+            }
+
+            const defaultUA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36';
+            let ua = defaultUA;
+
+            if (details.url.includes('accounts.google.com')) {
+                ua = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:126.0) Gecko/20100101 Firefox/126.0';
+            }
+
+            details.requestHeaders['User-Agent'] = ua;
+            callback({ requestHeaders: details.requestHeaders });
+        });
+    }
 });
 
 // --- GESTIONNAIRE D'ERREURS DE CERTIFICAT SSL ---
