@@ -345,6 +345,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Configuration Pro du Webview
             wv.setAttribute('preload', './preload.js');
             wv.setAttribute('webpreferences', 'contextIsolation=yes');
+            wv.setAttribute('allowpopups', 'yes');
             const defaultUA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36';
             wv.setAttribute('useragent', defaultUA);
             
