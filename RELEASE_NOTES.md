@@ -1,6 +1,6 @@
-# 🌐 Domus Browser Pro — Version 1.2.2 Stable Release
+# 🌐 Domus Browser Pro — Version 1.2.3 Stable Release
 
-Nous sommes fiers de vous présenter la version **1.2.2** de Domus Browser Pro. Cette mise à jour mineure mais critique apporte des améliorations substantielles en matière de productivité, une refonte totale de l'ergonomie des clics droits (désormais 100% natifs et stables sur Gmail et Google Search), une sécurité renforcée, un pipeline de déploiement automatique par bytecode swap ultra-fiable, ainsi qu'une injection CSS dynamique pour faire disparaître définitivement l'ancien menu contextuel HTML/CSS persistant sur les anciennes installations physiques locales.
+Nous sommes fiers de vous présenter la version **1.2.3** de Domus Browser Pro. Cette mise à jour résout un problème critique de navigation en éliminant les écoutes de canaux IPC en doublon dans le processus principal. Cela stabilise à 100% le changement d'onglet (tab-switch) et la fermeture d'onglet, tout en conservant toutes les fonctionnalités premium : menu clic droit natif OS ultra-stable, sécurité renforcée Aegis, et auto-update delta.
 
 ---
 

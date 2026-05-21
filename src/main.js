@@ -9,7 +9,7 @@ const securityManager = require('./security');
 const DomusUpdater = require('./updater');
 
 let domusUpdater = null;
-const DOMUS_VERSION = '1.2.2';
+const DOMUS_VERSION = '1.2.3';
 
 // CONFIGURATION DE RENDU ULTRA-FLUIDE ET HYPER-ÉCONOME (GPU BASSE CONSOMMATION)
 app.commandLine.appendSwitch('force-low-power-gpu'); // Force l'utilisation du GPU économe (iGPU) pour économiser l'énergie et éviter le dGPU dédié
@@ -320,11 +320,7 @@ ipcMain.on('new-tab', (e, data) => {
     win.webContents.send('tab-created', { id, url, active: true, isShadow });
 });
 
-ipcMain.on('switch-tab', (e, id) => win.webContents.send('tab-switched', id));
-ipcMain.on('close-tab', (e, id) => {
-    tabs.delete(id);
-    win.webContents.send('tab-closed', id);
-});
+
 
 // --- GESTION DES FENÊTRES ---
 ipcMain.on('window-minimize', () => win.minimize());
