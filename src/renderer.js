@@ -371,10 +371,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
-            wv.addEventListener('context-menu', (e) => {
-                e.preventDefault();
-                showWebviewContextMenu(e, e.params, wv);
-            });
 
             function updateUrlBarSecurityStyle(url) {
                 if (!urlInput) return;

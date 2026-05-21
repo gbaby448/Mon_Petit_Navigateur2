@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, session, net, shell, globalShortcut } = require('electron');
+const { app, BrowserWindow, ipcMain, session, net, shell, globalShortcut, Menu, MenuItem } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
@@ -1129,6 +1129,98 @@ app.on('web-contents-created', (event, contents) => {
         win.webContents.send('tab-created', { id: `tab-${tabCounter++}`, url, active: true });
         return { action: 'deny' };
     });
+
+    if (contents.getType() === 'webview') {
+        contents.on('context-menu', (event, params) => {
+            event.preventDefault();
+            const menu = new Menu();
+
+            if (params.linkURL && params.linkURL.trim() !== '') {
+                menu.append(new MenuItem({
+                    label: "Ouvrir le lien dans un nouvel onglet",
+                    click: () => win.webContents.send('tab-created', { id: `tab-${tabCounter++}`, url: params.linkURL, active: true })
+                }));
+                menu.append(new MenuItem({
+                    label: "Copier l'adresse du lien",
+                    click: () => require('electron').clipboard.writeText(params.linkURL)
+                }));
+                menu.append(new MenuItem({ type: 'separator' }));
+            }
+
+            if (params.mediaType === 'image' && params.srcURL) {
+                menu.append(new MenuItem({
+                    label: "Ouvrir l'image dans un nouvel onglet",
+                    click: () => win.webContents.send('tab-created', { id: `tab-${tabCounter++}`, url: params.srcURL, active: true })
+                }));
+                menu.append(new MenuItem({
+                    label: "Copier l'adresse de l'image",
+                    click: () => require('electron').clipboard.writeText(params.srcURL)
+                }));
+                menu.append(new MenuItem({ type: 'separator' }));
+            }
+
+            if (params.selectionText && params.selectionText.trim().length > 0) {
+                menu.append(new MenuItem({ label: "Copier", role: 'copy' }));
+                menu.append(new MenuItem({
+                    label: `Rechercher "${params.selectionText.length > 25 ? params.selectionText.substring(0, 25) + '...' : params.selectionText}" sur Google`,
+                    click: () => {
+                        const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(params.selectionText)}`;
+                        win.webContents.send('tab-created', { id: `tab-${tabCounter++}`, url: searchUrl, active: true });
+                    }
+                }));
+                menu.append(new MenuItem({ type: 'separator' }));
+            }
+
+            if (params.isEditable) {
+                menu.append(new MenuItem({ label: "Couper", role: 'cut' }));
+                menu.append(new MenuItem({ label: "Copier", role: 'copy' }));
+                menu.append(new MenuItem({ label: "Coller", role: 'paste' }));
+                menu.append(new MenuItem({ label: "Tout sélectionner", role: 'selectall' }));
+                menu.append(new MenuItem({ type: 'separator' }));
+            }
+
+            menu.append(new MenuItem({
+                label: "Page précédente",
+                enabled: contents.canGoBack(),
+                click: () => contents.goBack()
+            }));
+            menu.append(new MenuItem({
+                label: "Page suivante",
+                enabled: contents.canGoForward(),
+                click: () => contents.goForward()
+            }));
+            menu.append(new MenuItem({
+                label: "Actualiser",
+                click: () => contents.reload()
+            }));
+            menu.append(new MenuItem({ type: 'separator' }));
+
+            menu.append(new MenuItem({
+                label: "Traduire cette page en français",
+                click: () => {
+                    const currentUrl = contents.getURL();
+                    contents.loadURL(`https://translate.google.com/translate?sl=auto&tl=fr&u=${encodeURIComponent(currentUrl)}`);
+                }
+            }));
+            menu.append(new MenuItem({
+                label: "Copier l'adresse de la page",
+                click: () => require('electron').clipboard.writeText(contents.getURL())
+            }));
+            menu.append(new MenuItem({ type: 'separator' }));
+
+            menu.append(new MenuItem({
+                label: "Inspecter l'élément",
+                click: () => {
+                    contents.inspectElement(params.x, params.y);
+                    if (!contents.isDevToolsOpened()) {
+                        contents.openDevTools();
+                    }
+                }
+            }));
+
+            menu.popup({ window: win });
+        });
+    }
 
     const sess = contents.session;
     if (sess && !configuredSessions.has(sess)) {
