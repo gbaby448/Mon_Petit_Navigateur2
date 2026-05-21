@@ -2068,110 +2068,130 @@ document.addEventListener('DOMContentLoaded', () => {
         menu = document.createElement('div');
         menu.id = 'domus-webview-context-menu';
 
-        // Calculer les coordonnées absolues dans la fenêtre principale
-        const rect = wv.getBoundingClientRect();
-        const clientX = rect.left + params.x;
-        const clientY = rect.top + params.y;
+        // Coordonnées corrigées : utiliser les coords client de l'event JS plutôt que params.x/y relatifs à la webview
+        const clientX = e.clientX || (wv.getBoundingClientRect().left + params.x);
+        const clientY = e.clientY || (wv.getBoundingClientRect().top  + params.y);
 
         menu.style.cssText = `
             position: fixed;
             top: ${clientY}px;
             left: ${clientX}px;
-            background: rgba(13, 13, 16, 0.95);
+            background: rgba(13, 13, 16, 0.97);
             border: 1px solid var(--accent-color, #00ff88);
             border-radius: 8px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.8);
             backdrop-filter: blur(15px);
             z-index: 9999999;
-            padding: 6px 0;
-            min-width: 210px;
+            padding: 4px 0;
+            min-width: 230px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         `;
 
         const currentUrl = params.pageURL || wv.getURL();
+        const linkUrl    = params.linkURL  || '';
+        const srcUrl     = params.srcURL   || '';
+        const mediaType  = params.mediaType || 'none';
+        const selection  = params.selectionText || '';
+        const isEditable = params.isEditable || false;
+
         const options = [];
 
-        // Boutons de navigation basiques
-        if (wv.canGoBack()) {
-            options.push({
-                text: "⬅️ Page précédente",
-                action: () => wv.goBack()
-            });
-        }
-        if (wv.canGoForward()) {
-            options.push({
-                text: "➡️ Page suivante",
-                action: () => wv.goForward()
-            });
-        }
-        
-        // On ne propose d'actualiser et copier l'URL que si ce n'est pas une page système interne
-        if (!currentUrl.includes('domus://') && !currentUrl.includes('file://')) {
-            options.push({
-                text: "🔄 Actualiser",
-                action: () => wv.reload()
-            });
-            options.push({
-                text: "🌐 Traduire cette page en français",
-                action: () => {
-                    const translateUrl = `https://translate.google.com/translate?sl=auto&tl=fr&u=${encodeURIComponent(currentUrl)}`;
-                    wv.src = translateUrl;
-                    showDomusToast("Traduction en cours...");
-                }
-            });
-            options.push({
-                text: "📋 Copier l'adresse de la page",
-                action: () => {
-                    navigator.clipboard.writeText(currentUrl);
-                    showDomusToast("URL copiée dans le presse-papiers.");
-                }
-            });
-        } else {
-            options.push({
-                text: "🔄 Actualiser",
-                action: () => wv.reload()
-            });
+        // ── Lien ──────────────────────────────────────────────────────────────
+        if (linkUrl && linkUrl !== currentUrl) {
+            options.push({ icon: '🔗', text: "Ouvrir le lien dans un nouvel onglet", action: () => window.domusAPI.createTab({ url: linkUrl }) });
+            options.push({ icon: '📋', text: "Copier l'adresse du lien", action: () => { navigator.clipboard.writeText(linkUrl); showDomusToast('Lien copié.'); } });
+            options.push({ separator: true });
         }
 
+        // ── Image ──────────────────────────────────────────────────────────────
+        if (mediaType === 'image' && srcUrl) {
+            options.push({ icon: '🖼️', text: "Ouvrir l'image dans un nouvel onglet", action: () => window.domusAPI.createTab({ url: srcUrl }) });
+            options.push({ icon: '💾', text: "Enregistrer l'image",                  action: () => wv.downloadURL(srcUrl) });
+            options.push({ icon: '📋', text: "Copier l'adresse de l'image",          action: () => { navigator.clipboard.writeText(srcUrl); showDomusToast("URL de l'image copiée."); } });
+            options.push({ separator: true });
+        }
+
+        // ── Vidéo ──────────────────────────────────────────────────────────────
+        if (mediaType === 'video' && srcUrl) {
+            options.push({ icon: '▶️', text: "Ouvrir la vidéo dans un nouvel onglet", action: () => window.domusAPI.createTab({ url: srcUrl }) });
+            options.push({ icon: '💾', text: "Enregistrer la vidéo",                  action: () => wv.downloadURL(srcUrl) });
+            options.push({ separator: true });
+        }
+
+        // ── Texte sélectionné ──────────────────────────────────────────────────
+        if (selection && selection.trim().length > 0) {
+            const shortSel = selection.length > 30 ? selection.substring(0, 30) + '…' : selection;
+            options.push({ icon: '📋', text: `Copier "${shortSel}"`,     action: () => { navigator.clipboard.writeText(selection); showDomusToast('Texte copié.'); } });
+            options.push({ icon: '🔍', text: `Rechercher "${shortSel}"`, action: () => window.domusAPI.createTab({ url: `https://www.google.com/search?q=${encodeURIComponent(selection)}` }) });
+            options.push({ separator: true });
+        }
+
+        // ── Champ éditable ─────────────────────────────────────────────────────
+        if (isEditable) {
+            options.push({ icon: '✂️', text: 'Couper',            action: () => wv.executeJavaScript('document.execCommand("cut")') });
+            options.push({ icon: '📋', text: 'Copier',            action: () => wv.executeJavaScript('document.execCommand("copy")') });
+            options.push({ icon: '📌', text: 'Coller',            action: async () => { const t = await navigator.clipboard.readText(); wv.executeJavaScript(`document.execCommand('insertText',false,${JSON.stringify(t)})`); } });
+            options.push({ icon: '🔠', text: 'Tout sélectionner', action: () => wv.executeJavaScript('document.execCommand("selectAll")') });
+            options.push({ separator: true });
+        }
+
+        // ── Navigation ─────────────────────────────────────────────────────────
+        if (wv.canGoBack())    options.push({ icon: '⬅️', text: 'Page précédente', action: () => wv.goBack() });
+        if (wv.canGoForward()) options.push({ icon: '➡️', text: 'Page suivante',   action: () => wv.goForward() });
+
+        if (!currentUrl.startsWith('domus://') && !currentUrl.startsWith('file://')) {
+            options.push({ icon: '🔄', text: 'Actualiser',                   action: () => wv.reload() });
+            options.push({ separator: true });
+            options.push({ icon: '🖨️', text: 'Imprimer…',                    action: () => wv.print() });
+            options.push({ separator: true });
+            options.push({ icon: '🌐', text: 'Traduire en français',         action: () => { wv.src = `https://translate.google.com/translate?sl=auto&tl=fr&u=${encodeURIComponent(currentUrl)}`; showDomusToast('Traduction en cours…'); } });
+            options.push({ icon: '📋', text: "Copier l'adresse de la page", action: () => { navigator.clipboard.writeText(currentUrl); showDomusToast('URL copiée.'); } });
+            options.push({ icon: '🔗', text: 'Ouvrir dans un nouvel onglet', action: () => window.domusAPI.createTab({ url: currentUrl }) });
+            options.push({ separator: true });
+            options.push({ icon: '🛠️', text: 'Inspecter',                   action: () => wv.openDevTools() });
+            options.push({ icon: '📄', text: 'Afficher le code source',      action: () => window.domusAPI.createTab({ url: `view-source:${currentUrl}` }) });
+        } else {
+            options.push({ icon: '🔄', text: 'Actualiser', action: () => wv.reload() });
+        }
+
+        // ── Rendu ──────────────────────────────────────────────────────────────
         options.forEach(opt => {
+            if (opt.separator) {
+                const sep = document.createElement('div');
+                sep.style.cssText = 'height:1px; background:rgba(255,255,255,0.08); margin:3px 0;';
+                menu.appendChild(sep);
+                return;
+            }
             const item = document.createElement('div');
-            item.textContent = opt.text;
             item.style.cssText = `
-                padding: 10px 16px;
-                font-size: 13px;
-                color: #e0e0e6;
-                cursor: pointer;
-                transition: background 0.2s, color 0.2s;
+                display:flex; align-items:center; gap:10px;
+                padding:8px 14px; font-size:13px; color:#e0e0e6;
+                cursor:pointer; transition:background 0.15s, color 0.15s;
+                white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
             `;
-            
-            item.onmouseenter = () => {
-                item.style.background = 'rgba(0, 255, 136, 0.1)';
-                item.style.color = 'var(--accent-color, #00ff88)';
-            };
-            item.onmouseleave = () => {
-                item.style.background = 'transparent';
-                item.style.color = '#e0e0e6';
-            };
-            
-            item.onclick = () => {
-                opt.action();
-                menu.remove();
-            };
+            const iconSpan = document.createElement('span');
+            iconSpan.textContent = opt.icon || '';
+            iconSpan.style.cssText = 'width:18px;text-align:center;flex-shrink:0;font-size:14px;';
+            const textSpan = document.createElement('span');
+            textSpan.textContent = opt.text;
+            textSpan.style.cssText = 'overflow:hidden;text-overflow:ellipsis;';
+            item.appendChild(iconSpan);
+            item.appendChild(textSpan);
+            item.onmouseenter = () => { item.style.background='rgba(0,255,136,0.12)'; item.style.color='var(--accent-color,#00ff88)'; };
+            item.onmouseleave = () => { item.style.background='transparent'; item.style.color='#e0e0e6'; };
+            item.onclick = () => { opt.action(); menu.remove(); };
             menu.appendChild(item);
         });
 
         document.body.appendChild(menu);
 
         // Réajustement si hors-écran
-        const menuRect = menu.getBoundingClientRect();
-        if (clientX + menuRect.width > window.innerWidth) {
-            menu.style.left = `${window.innerWidth - menuRect.width - 10}px`;
-        }
-        if (clientY + menuRect.height > window.innerHeight) {
-            menu.style.top = `${window.innerHeight - menuRect.height - 10}px`;
-        }
+        const mr = menu.getBoundingClientRect();
+        if (clientX + mr.width  > window.innerWidth)  menu.style.left = `${window.innerWidth  - mr.width  - 10}px`;
+        if (clientY + mr.height > window.innerHeight) menu.style.top  = `${window.innerHeight - mr.height - 10}px`;
 
         const closeMenu = () => {
-            menu.remove();
+            if (document.contains(menu)) menu.remove();
             document.removeEventListener('click', closeMenu);
             document.removeEventListener('contextmenu', closeMenu);
         };
