@@ -227,6 +227,40 @@ document.addEventListener('DOMContentLoaded', () => {
         window.domusAPI.resizeActiveTab({ suggestionsActive: false });
     }
 
+    function updateUrlBarSecurityStyle(url) {
+        if (!urlInput) return;
+        const securityIndicator = document.getElementById('security-indicator');
+        
+        if (url && url.startsWith('http://') && !url.includes('localhost') && !url.includes('127.0.0.1')) {
+            urlInput.style.borderColor = "#ff3b30";
+            urlInput.style.boxShadow = "0 0 10px rgba(255, 59, 48, 0.4)";
+            if (securityIndicator) {
+                securityIndicator.textContent = "⚠️";
+                securityIndicator.style.color = "#ff3b30";
+                securityIndicator.style.filter = "drop-shadow(0 0 5px rgba(255, 59, 48, 0.6))";
+                securityIndicator.title = "Attention : Connexion non sécurisée (HTTP)";
+            }
+        } else if (url && (url.startsWith('domus://') || url.startsWith('file://'))) {
+            urlInput.style.borderColor = "";
+            urlInput.style.boxShadow = "";
+            if (securityIndicator) {
+                securityIndicator.textContent = "⚙️";
+                securityIndicator.style.color = "#00d2ff";
+                securityIndicator.style.filter = "drop-shadow(0 0 5px rgba(0, 210, 255, 0.6))";
+                securityIndicator.title = "Outil Système Sécurisé Domus";
+            }
+        } else {
+            urlInput.style.borderColor = "";
+            urlInput.style.boxShadow = "";
+            if (securityIndicator) {
+                securityIndicator.textContent = "🔒";
+                securityIndicator.style.color = "#00ff88";
+                securityIndicator.style.filter = "drop-shadow(0 0 5px rgba(0, 255, 136, 0.6))";
+                securityIndicator.title = "Connexion sécurisée (HTTPS)";
+            }
+        }
+    }
+
     function updateSuggestionHighlight() {
         const items = domusSuggestBox.querySelectorAll('.suggestion-item');
         items.forEach((item, i) => {
@@ -371,40 +405,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
-
-            function updateUrlBarSecurityStyle(url) {
-                if (!urlInput) return;
-                const securityIndicator = document.getElementById('security-indicator');
-                
-                if (url && url.startsWith('http://') && !url.includes('localhost') && !url.includes('127.0.0.1')) {
-                    urlInput.style.borderColor = "#ff3b30";
-                    urlInput.style.boxShadow = "0 0 10px rgba(255, 59, 48, 0.4)";
-                    if (securityIndicator) {
-                        securityIndicator.textContent = "⚠️";
-                        securityIndicator.style.color = "#ff3b30";
-                        securityIndicator.style.filter = "drop-shadow(0 0 5px rgba(255, 59, 48, 0.6))";
-                        securityIndicator.title = "Attention : Connexion non sécurisée (HTTP)";
-                    }
-                } else if (url && (url.startsWith('domus://') || url.startsWith('file://'))) {
-                    urlInput.style.borderColor = "";
-                    urlInput.style.boxShadow = "";
-                    if (securityIndicator) {
-                        securityIndicator.textContent = "⚙️";
-                        securityIndicator.style.color = "#00d2ff";
-                        securityIndicator.style.filter = "drop-shadow(0 0 5px rgba(0, 210, 255, 0.6))";
-                        securityIndicator.title = "Outil Système Sécurisé Domus";
-                    }
-                } else {
-                    urlInput.style.borderColor = "";
-                    urlInput.style.boxShadow = "";
-                    if (securityIndicator) {
-                        securityIndicator.textContent = "🔒";
-                        securityIndicator.style.color = "#00ff88";
-                        securityIndicator.style.filter = "drop-shadow(0 0 5px rgba(0, 255, 136, 0.6))";
-                        securityIndicator.title = "Connexion sécurisée (HTTPS)";
-                    }
-                }
-            }
 
             // Détection et avertissement pour le protocole HTTP non sécurisé
             wv.addEventListener('did-start-navigation', (e) => {

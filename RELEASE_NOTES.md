@@ -1,4 +1,10 @@
-# 🌐 Domus Browser Pro — Version 1.2.4 Stable Release
+# Notes de version - Domus Browser Pro
+
+## Version 1.2.5 (Correctif Critique UI)
+- **FIX MAJEUR** : Résolution du bug bloquant qui empêchait le changement d'onglet sans les fermer au préalable. Le problème provenait d'une erreur de portée (scope JavaScript) dans le processus de rendu qui faisait planter silencieusement l'interface lors du clic.
+- **IMPORTANT** : Si vous aviez ce bug sur la version 1.2.4, l'auto-updater silencieux ne peut pas mettre à jour le fichier d'interface. Vous **devez absolument** double-cliquer sur le nouveau fichier d'installation `.exe` de la version 1.2.5 pour appliquer ce correctif.
+
+## Version 1.2.4 (Correctif UI)
 
 Nous sommes fiers de vous présenter la version **1.2.4** de Domus Browser Pro. Cette mise à jour mineure mais critique corrige le bug de l'impossibilité de changer d'onglet, causé par le "drag region bleeding" propre à Windows. Les onglets ont désormais la garantie d'intercepter vos clics sans être bloqués par le comportement natif de déplacement de fenêtre !
 
