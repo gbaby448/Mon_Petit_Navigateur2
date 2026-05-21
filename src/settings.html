@@ -1028,14 +1028,6 @@
         }
 
         checkUpdateBtn?.addEventListener('click', async () => {
-            // Si la mise à jour est déjà téléchargée, on redémarre à chaud
-            if (updateBtnLabel.textContent === 'Redémarrer pour terminer') {
-                if (window.domusAPI?.relaunchApp) {
-                    window.domusAPI.relaunchApp();
-                }
-                return;
-            }
-
             if (!window.domusAPI?.checkForUpdates) return;
 
             // État : Recherche en cours
@@ -1053,12 +1045,8 @@
                         showUpdateStatus('✅', `Domus v${result.version} est déjà à jour !`, 'rgba(0,255,136,0.3)');
                         break;
                     case 'downloaded':
-                        showUpdateStatus('🚀', `Mise à jour v${result.version} prête ! Redémarrez Domus.`, 'rgba(0,200,255,0.4)');
-                        updateBtnIcon.textContent   = '🔄';
-                        updateBtnLabel.textContent  = 'Redémarrez pour terminer';
-                        checkUpdateBtn.disabled = false;
-                        checkUpdateBtn.style.opacity = '1';
-                        return; // Ne pas réinitialiser le bouton
+                        showUpdateStatus('🚀', `Mise à jour v${result.version} prête ! Veuillez redémarrer Domus manuellement.`, 'rgba(0,200,255,0.4)');
+                        break;
                     case 'busy':
                         showUpdateStatus('⏳', 'Vérification déjà en cours...', 'rgba(255,200,0,0.3)');
                         break;

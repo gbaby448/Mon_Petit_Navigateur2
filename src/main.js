@@ -1192,10 +1192,5 @@ ipcMain.handle('check-for-updates', async () => {
     return await domusUpdater.checkForUpdates();
 });
 
-ipcMain.on('relaunch-app', () => {
-    app.relaunch();
-    app.quit();
-});
-
 app.whenReady().then(createWindow);
 app.on('window-all-closed', () => app.quit());

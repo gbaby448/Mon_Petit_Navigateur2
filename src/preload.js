@@ -68,7 +68,6 @@ if (isSystemPage) {
 
         // --- MISES À JOUR GITHUB ---
         checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
-        relaunchApp: () => ipcRenderer.send('relaunch-app'),
 
         // --- PHASE 2 : WIZARD & MIGRATION ---
         checkHardwareFeatures: () => ipcRenderer.invoke('check-hardware-features'),
