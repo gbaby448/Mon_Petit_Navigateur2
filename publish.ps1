@@ -50,6 +50,20 @@ if (-not (Test-Path $notesFile)) {
     "## Domus Browser Pro $version`n`nMise a jour automatique via le systeme de mise a jour integre." | Out-File $notesFile -Encoding utf8
 }
 
+# Verifier si gh CLI est installe
+if (-not (Get-Command "gh" -ErrorAction SilentlyContinue)) {
+    Write-Host "" -ForegroundColor Red
+    Write-Host "ERREUR : GitHub CLI (gh) n'est pas installe sur votre systeme." -ForegroundColor Red
+    Write-Host "Le script a compile et tagge votre code, mais ne peut pas uploader main.jsc sur GitHub." -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "Pour resoudre cela, executez ces deux commandes simples :" -ForegroundColor Cyan
+    Write-Host "1. winget install --id GitHub.cli" -ForegroundColor Green
+    Write-Host "2. gh auth login" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "Une fois fait, relancez .\publish.ps1 pour finaliser la release !" -ForegroundColor Yellow
+    exit 1
+}
+
 gh release create $tag `
     "$installer" `
     "$jscPath" `
