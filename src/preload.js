@@ -131,7 +131,27 @@ if (isSystemPage) {
         // --- GESTION DES FENÊTRES ---
         windowMinimize: () => ipcRenderer.send('window-minimize'),
         windowMaximize: () => ipcRenderer.send('window-maximize'),
-        windowClose: () => ipcRenderer.send('window-close')
+        windowClose: () => ipcRenderer.send('window-close'),
+
+        // --- CRÉATION D'ONGLET (depuis menu contextuel) ---
+        createTab: ({ url }) => ipcRenderer.send('new-tab', { url, isShadow: false }),
+
+        // --- RACCOURCIS CLAVIER ---
+        // Écoute tous les canaux shortcut-* et appelle le callback avec l'action sans le préfixe
+        onKeyboardShortcut: (callback) => {
+            const shortcuts = [
+                'new-tab','close-tab','next-tab','prev-tab','focus-urlbar',
+                'reload','hard-reload','find','history','downloads',
+                'devtools','back','forward','zoom-in','zoom-out','zoom-reset','stop'
+            ];
+            shortcuts.forEach(action => {
+                ipcRenderer.on(`shortcut-${action}`, () => callback(action));
+            });
+            // Onglets 1-9
+            for (let i = 1; i <= 9; i++) {
+                ipcRenderer.on(`shortcut-goto-tab`, (_, n) => callback(`goto-tab-${n}`));
+            }
+        }
     });
 } else {
     // --- CONTEXTE TIERS ISOLÉ (SITES WEB STANDARDS) ---

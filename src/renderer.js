@@ -2987,6 +2987,93 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 
+
+    // =========================================================================
+    // RACCOURCIS CLAVIER - Standard navigateur
+    // =========================================================================
+    if (window.domusAPI && window.domusAPI.onKeyboardShortcut) {
+        window.domusAPI.onKeyboardShortcut(function(action) {
+
+            var getActiveWV = function() { return activeTabId ? document.getElementById('view-' + activeTabId) : null; };
+
+            var getTabIds = function() {
+                return Array.from(document.querySelectorAll('.tab-item[data-tab-id]')).map(function(el) { return el.dataset.tabId; });
+            };
+
+            if (action.startsWith('goto-tab-')) {
+                var n = parseInt(action.split('-').pop(), 10);
+                var ids = getTabIds();
+                var target = n === 9 ? ids[ids.length - 1] : ids[n - 1];
+                if (target) window.domusAPI.switchTab(target);
+                return;
+            }
+
+            var wv;
+            switch (action) {
+                case 'new-tab':
+                    window.domusAPI.createTab({ url: 'about:blank' });
+                    break;
+                case 'close-tab':
+                    if (activeTabId) window.domusAPI.closeTab(activeTabId);
+                    break;
+                case 'next-tab':
+                    var ids2 = getTabIds();
+                    if (ids2.length >= 2) { var i2 = ids2.indexOf(String(activeTabId)); window.domusAPI.switchTab(ids2[(i2 + 1) % ids2.length]); }
+                    break;
+                case 'prev-tab':
+                    var ids3 = getTabIds();
+                    if (ids3.length >= 2) { var i3 = ids3.indexOf(String(activeTabId)); window.domusAPI.switchTab(ids3[(i3 - 1 + ids3.length) % ids3.length]); }
+                    break;
+                case 'focus-urlbar':
+                    if (urlInput) { urlInput.focus(); urlInput.select(); }
+                    break;
+                case 'back':
+                    wv = getActiveWV(); if (wv && wv.canGoBack()) wv.goBack(); break;
+                case 'forward':
+                    wv = getActiveWV(); if (wv && wv.canGoForward()) wv.goForward(); break;
+                case 'reload':
+                    wv = getActiveWV(); if (wv) wv.reload(); break;
+                case 'hard-reload':
+                    wv = getActiveWV(); if (wv) wv.reloadIgnoringCache(); break;
+                case 'escape':
+                    wv = getActiveWV(); if (wv) wv.stop();
+                    Object.values(sidePanels).forEach(function(p) { if (p && !p.classList.contains('hidden')) p.classList.add('hidden'); });
+                    if (wv) wv.focus();
+                    break;
+                case 'zoom-in':
+                    wv = getActiveWV(); if (wv) { var z1 = Math.min((wv.getZoomFactor() || 1) + 0.1, 5); wv.setZoomFactor(z1); showDomusToast('Zoom : ' + Math.round(z1 * 100) + '%'); }
+                    break;
+                case 'zoom-out':
+                    wv = getActiveWV(); if (wv) { var z2 = Math.max((wv.getZoomFactor() || 1) - 0.1, 0.25); wv.setZoomFactor(z2); showDomusToast('Zoom : ' + Math.round(z2 * 100) + '%'); }
+                    break;
+                case 'zoom-reset':
+                    wv = getActiveWV(); if (wv) { wv.setZoomFactor(1); showDomusToast('Zoom 100%'); }
+                    break;
+                case 'devtools':
+                    wv = getActiveWV(); if (wv) wv.openDevTools(); break;
+                case 'find':
+                    wv = getActiveWV(); if (!wv) break;
+                    var term = prompt('Rechercher dans la page :');
+                    if (term && term.trim()) {
+                        wv.findInPage(term.trim());
+                        wv.addEventListener('found-in-page', function(ev) {
+                            showDomusToast(ev.result.matches === 0 ? 'Aucun resultat.' : ev.result.activeMatchOrdinal + '/' + ev.result.matches + ' resultat(s)');
+                        }, { once: true });
+                    } else if (term !== null) { wv.stopFindInPage('clearSelection'); }
+                    break;
+                case 'history':
+                    if (btnHistory) btnHistory.click(); break;
+                case 'downloads':
+                    if (btnDownloads) btnDownloads.click(); break;
+                case 'view-source':
+                    wv = getActiveWV(); if (wv) window.domusAPI.createTab({ url: 'view-source:' + wv.getURL() }); break;
+                case 'bookmark':
+                    if (btnFavorites) btnFavorites.click(); showDomusToast('Ouvrez les Favoris pour ajouter cette page.'); break;
+                case 'clear-data':
+                    if (btnSettings) btnSettings.click(); showDomusToast('Allez dans Parametres pour effacer le cache.'); break;
+            }
+        });
+    }
     } catch (e) {
         console.error("FATAL RENDERER ERROR:", e);
     }

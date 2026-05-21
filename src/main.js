@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, session, net, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, session, net, shell, globalShortcut } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
@@ -9,11 +9,11 @@ const securityManager = require('./security');
 const DomusUpdater = require('./updater');
 
 let domusUpdater = null;
-const DOMUS_VERSION = '1.1.2';
+const DOMUS_VERSION = '1.2.0';
 
 // CONFIGURATION DE RENDU ULTRA-FLUIDE ET HYPER-ÉCONOME (GPU BASSE CONSOMMATION)
 app.commandLine.appendSwitch('force-low-power-gpu'); // Force l'utilisation du GPU économe (iGPU) pour économiser l'énergie et éviter le dGPU dédié
-app.commandLine.appendSwitch('no-sandbox');
+// no-sandbox retiré : le bac à sable Chromium protège contre l'exécution de code arbitraire (RCE).
 
 // DÉTÉLÉMÉTRIE GOOGLE CHROMIUM TOTAL & SOUVERAINETÉ
 app.commandLine.appendSwitch('disable-background-networking');
@@ -109,8 +109,12 @@ ipcMain.handle('init-vault', async (e, pwd) => {
     }
 });
 
+// Aide à valider que l'appelant IPC est bien la fenêtre principale Domus (anti-injection WebView)
+const isTrustedSender = (e) => win && !win.isDestroyed() && e.sender.id === win.webContents.id;
+
 // --- MOTS DE PASSE ---
-ipcMain.handle('get-passwords', () => {
+ipcMain.handle('get-passwords', (e) => {
+    if (!isTrustedSender(e)) { console.warn('[DOMUS SEC] Tentative d\'accès non autorisée à get-passwords'); return []; }
     const passwords = loadData(passwordsPath);
     return passwords.map(p => {
         const decrypted = { ...p };
@@ -207,7 +211,8 @@ ipcMain.handle('delete-password', (e, id) => {
 });
 
 // --- PROTECTION CB (CARTES BANCAIRES) ---
-ipcMain.handle('get-cards', () => {
+ipcMain.handle('get-cards', (e) => {
+    if (!isTrustedSender(e)) { console.warn('[DOMUS SEC] Accès non autorisé à get-cards'); return []; }
     const cards = loadData(cardsPath);
     return cards.map(c => {
         const decrypted = { ...c };
@@ -792,7 +797,59 @@ function createWindow() {
             console.log('[DOMUS Updater] Statut:', result.status);
         });
     }, 10000); // Vérification 10 secondes après le démarrage
+
+    // =========================================================================
+    // ⌨️ RACCOURCIS CLAVIER STANDARD NAVIGATEUR
+    // =========================================================================
+    const sendToRenderer = (channel, ...args) => {
+        if (win && !win.isDestroyed()) win.webContents.send(channel, ...args);
+    };
+
+    // Nouvel onglet
+    globalShortcut.register('CommandOrControl+T', () => sendToRenderer('shortcut-new-tab'));
+    // Fermer l'onglet actif
+    globalShortcut.register('CommandOrControl+W', () => sendToRenderer('shortcut-close-tab'));
+    // Onglet suivant / précédent
+    globalShortcut.register('CommandOrControl+Tab', () => sendToRenderer('shortcut-next-tab'));
+    globalShortcut.register('CommandOrControl+Shift+Tab', () => sendToRenderer('shortcut-prev-tab'));
+    // Focus barre d'adresse
+    globalShortcut.register('CommandOrControl+L', () => sendToRenderer('shortcut-focus-urlbar'));
+    globalShortcut.register('F6', () => sendToRenderer('shortcut-focus-urlbar'));
+    // Recharger
+    globalShortcut.register('CommandOrControl+R', () => sendToRenderer('shortcut-reload'));
+    globalShortcut.register('F5', () => sendToRenderer('shortcut-reload'));
+    // Rechargement forcé (ignore le cache)
+    globalShortcut.register('CommandOrControl+Shift+R', () => sendToRenderer('shortcut-hard-reload'));
+    // Rechercher dans la page
+    globalShortcut.register('CommandOrControl+F', () => sendToRenderer('shortcut-find'));
+    // Historique
+    globalShortcut.register('CommandOrControl+H', () => sendToRenderer('shortcut-history'));
+    // Téléchargements
+    globalShortcut.register('CommandOrControl+J', () => sendToRenderer('shortcut-downloads'));
+    // DevTools de la webview
+    globalShortcut.register('CommandOrControl+Shift+I', () => sendToRenderer('shortcut-devtools'));
+    globalShortcut.register('F12', () => sendToRenderer('shortcut-devtools'));
+    // Plein écran
+    globalShortcut.register('F11', () => {
+        if (win && !win.isDestroyed()) win.setFullScreen(!win.isFullScreen());
+    });
+    // Navigation avance/retour
+    globalShortcut.register('Alt+Left',  () => sendToRenderer('shortcut-back'));
+    globalShortcut.register('Alt+Right', () => sendToRenderer('shortcut-forward'));
+    // Zoom avant / arrière / réinitialiser
+    globalShortcut.register('CommandOrControl+Plus',  () => sendToRenderer('shortcut-zoom-in'));
+    globalShortcut.register('CommandOrControl+=',     () => sendToRenderer('shortcut-zoom-in'));
+    globalShortcut.register('CommandOrControl+-',     () => sendToRenderer('shortcut-zoom-out'));
+    globalShortcut.register('CommandOrControl+0',     () => sendToRenderer('shortcut-zoom-reset'));
+    // Onglets 1-8 = accès direct, 9 = dernier
+    for (let i = 1; i <= 9; i++) {
+        ((n) => globalShortcut.register(`CommandOrControl+${n}`, () => sendToRenderer('shortcut-goto-tab', n)))(i);
+    }
+    // Esc = arrêter le chargement
+    globalShortcut.register('Escape', () => sendToRenderer('shortcut-stop'));
 }
+
+app.on('will-quit', () => globalShortcut.unregisterAll());
 
 // --- SERVICES DE CRYPTOGRAPHIE AVANCÉS ---
 ipcMain.handle('encrypt-data', (e, text) => {
@@ -942,7 +999,9 @@ ipcMain.handle('import-passwords-csv', async () => {
             if (securityManager.key) {
                 entry.passEnc = securityManager.encrypt(pass);
             } else {
-                entry.pass = pass;
+                // Coffre non déverrouillé : on refuse l'import pour éviter le stockage en clair
+                console.warn('[DOMUS SEC] Import CSV refusé : coffre-fort non déverrouillé.');
+                return { success: false, error: 'Déverrouillez d\'abord votre coffre-fort avant d\'importer des mots de passe.' };
             }
             
             passwords.push(entry);
@@ -1107,17 +1166,24 @@ app.on('web-contents-created', (event, contents) => {
 });
 
 // --- GESTIONNAIRE D'ERREURS DE CERTIFICAT SSL ---
+// Comportement strict : on bloque par défaut et on informe l'utilisateur.
+// Seules les URLs localhost/127.0.0.1 sont automatiquement exemptées (dev local).
 app.on('certificate-error', (event, webContents, url, error, certificate, callback) => {
     event.preventDefault();
-    if (win && !win.isDestroyed()) {
-        try {
-            const host = new URL(url).hostname;
-            win.webContents.send('show-float-toast', `⚠️ Certificat SSL invalide pour : ${host}`);
-        } catch (e) {
-            win.webContents.send('show-float-toast', `⚠️ Certificat SSL non sécurisé détecté`);
-        }
+    let host = url;
+    try { host = new URL(url).hostname; } catch (e) {}
+
+    // Autoriser automatiquement le localhost (dev)
+    if (host === 'localhost' || host === '127.0.0.1' || host === '::1') {
+        return callback(true);
     }
-    callback(true); // Permet d'accéder au site après avertissement
+
+    // Pour tout autre site : bloquer et avertir l'utilisateur
+    callback(false);
+    if (win && !win.isDestroyed()) {
+        win.webContents.send('show-float-toast', `🔴 Connexion bloquée : certificat SSL invalide pour ${host}. Vérifiez l'URL.`);
+    }
+    console.warn(`[DOMUS SEC] Certificat SSL rejeté pour ${host} — Erreur : ${error}`);
 });
 
 // --- IPC : Vérification manuelle depuis la page Paramètres ---
