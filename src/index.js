@@ -56,7 +56,7 @@ function compareVersions(v1, v2) {
 }
 
 // Récupérer la version embarquée (bundled) et celle d'AppData
-const bundledPackageJson = require('./package.json');
+const bundledPackageJson = require('../package.json');
 const bundledVersion = bundledPackageJson.version || '1.0.0';
 
 let appDataVersion = '0.0.0';
