@@ -1,6 +1,6 @@
-# 🌐 Domus Browser Pro — Version 1.2.0 Stable Release
+# 🌐 Domus Browser Pro — Version 1.2.1 Stable Release
 
-Nous sommes fiers de vous présenter la version **1.2.0** de Domus Browser Pro. Cette mise à jour majeure apporte des améliorations substantielles en matière de productivité, une refonte totale de l'ergonomie des clics droits, une sécurité renforcée et un pipeline de déploiement ultra-fiable.
+Nous sommes fiers de vous présenter la version **1.2.1** de Domus Browser Pro. Cette mise à jour mineure mais critique apporte des améliorations substantielles en matière de productivité, une refonte totale de l'ergonomie des clics droits (désormais 100% natifs et stables sur Gmail et Google Search), une sécurité renforcée et un pipeline de déploiement automatique par bytecode swap ultra-fiable.
 
 ---
 
