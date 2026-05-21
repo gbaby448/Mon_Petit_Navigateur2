@@ -68,6 +68,9 @@ if (-not (Get-Command "gh" -ErrorAction SilentlyContinue)) {
     exit 1
 }
 
+# Supprimer la release GitHub existante s'il y en a une pour permettre la ré-écriture propre
+gh release delete $tag -y 2>$null | Out-Null
+
 gh release create $tag `
     "$installer" `
     "$jscPath" `
