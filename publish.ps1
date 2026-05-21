@@ -69,7 +69,15 @@ if (-not (Get-Command "gh" -ErrorAction SilentlyContinue)) {
 }
 
 # Supprimer la release GitHub existante s'il y en a une pour permettre la ré-écriture propre
-gh release delete $tag -y 2>$null | Out-Null
+$exists = $false
+try {
+    & gh release view $tag --json tagName 2>$null | Out-Null
+    if ($LASTEXITCODE -eq 0) { $exists = $true }
+} catch {}
+
+if ($exists) {
+    & gh release delete $tag -y 2>$null | Out-Null
+}
 
 gh release create $tag `
     "$installer" `
