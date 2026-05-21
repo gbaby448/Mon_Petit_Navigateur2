@@ -34,9 +34,13 @@ Write-Host "      OK - $installer" -ForegroundColor Green
 # --- Etape 3 : Commit et tag Git ---
 Write-Host "[3/5] Commit et tag Git..." -ForegroundColor Yellow
 git add -A
-git commit -m "release: Domus Browser Pro v$version" 2>$null
-git tag $tag 2>$null
-git push origin main --tags
+# Commit s'il y a des modifications (ignore s'il n'y a rien à committer)
+git commit -m "release: Domus Browser Pro v$version" 2>$null | Out-Null
+# Forcer la création du tag s'il existe déjà pour permettre le retry
+git tag -f $tag
+# Pousser la branche et le tag spécifique avec forçage propre
+git push origin main
+git push origin $tag -f
 Write-Host "      OK - Tag $tag pousse sur GitHub." -ForegroundColor Green
 
 # --- Etape 4 : Creer la GitHub Release et uploader les assets ---
