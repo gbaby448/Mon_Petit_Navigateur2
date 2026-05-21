@@ -9,7 +9,7 @@ const securityManager = require('./security');
 const DomusUpdater = require('./updater');
 
 let domusUpdater = null;
-const DOMUS_VERSION = '1.2.1';
+const DOMUS_VERSION = '1.2.2';
 
 // CONFIGURATION DE RENDU ULTRA-FLUIDE ET HYPER-ÉCONOME (GPU BASSE CONSOMMATION)
 app.commandLine.appendSwitch('force-low-power-gpu'); // Force l'utilisation du GPU économe (iGPU) pour économiser l'énergie et éviter le dGPU dédié
@@ -765,6 +765,10 @@ function createWindow() {
     });
 
     win.loadFile(path.join(__dirname, 'index.html'));
+
+    win.webContents.on('did-finish-load', () => {
+        win.webContents.insertCSS('#domus-webview-context-menu { display: none !important; }');
+    });
 
     // --- MOTEUR DE MISE À JOUR GITHUB (vérification silencieuse au démarrage) ---
     domusUpdater = new DomusUpdater(win, DOMUS_VERSION);
