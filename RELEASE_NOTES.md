@@ -1,6 +1,6 @@
-# 🌐 Domus Browser Pro — Version 1.2.3 Stable Release
+# 🌐 Domus Browser Pro — Version 1.2.4 Stable Release
 
-Nous sommes fiers de vous présenter la version **1.2.3** de Domus Browser Pro. Cette mise à jour résout un problème critique de navigation en éliminant les écoutes de canaux IPC en doublon dans le processus principal. Cela stabilise à 100% le changement d'onglet (tab-switch) et la fermeture d'onglet, tout en conservant toutes les fonctionnalités premium : menu clic droit natif OS ultra-stable, sécurité renforcée Aegis, et auto-update delta.
+Nous sommes fiers de vous présenter la version **1.2.4** de Domus Browser Pro. Cette mise à jour mineure mais critique corrige le bug de l'impossibilité de changer d'onglet, causé par le "drag region bleeding" propre à Windows. Les onglets ont désormais la garantie d'intercepter vos clics sans être bloqués par le comportement natif de déplacement de fenêtre !
 
 ---
 

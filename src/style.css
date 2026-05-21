@@ -131,6 +131,7 @@ html, body {
     height: 100% !important;
     min-height: 0;
     overflow: hidden !important;
+    -webkit-app-region: no-drag;
 }
 
 #main-content {
@@ -228,6 +229,7 @@ html, body {
     align-items: center;
     padding: 0 10px;
     border-bottom: 1px solid rgba(255,255,255,0.03);
+    -webkit-app-region: no-drag;
 }
 
 #tabs-container {
