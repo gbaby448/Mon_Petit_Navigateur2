@@ -1,5 +1,10 @@
 # Notes de version - Domus Browser Pro
 
+## Version 1.2.6 (Espaces de travail & Glisser-Déposer)
+- **NOUVEAU - Espaces de Travail (Workspaces)** : Création, gestion et basculement à chaud (Hot Swap) entre espaces de travail personnalisés.
+- **NOUVEAU - Fichier de Sauvegarde Modulaire** : Les espaces sont enregistrés dans un fichier dédié `domus-workspaces.json` pour isoler vos données de l'application.
+- **NOUVEAU - Glisser-Déposer (Drag and Drop)** : Réorganisation fluide des onglets dans la barre supérieure, avec indicateurs visuels sécurisés (les onglets Shadow ne peuvent pas être déplacés pour des raisons de sécurité).
+- **NOUVEAU - Menu Contextuel Onglets** : Ajout de l'option "Déplacer vers l'espace" via le clic droit pour transférer instantanément un onglet d'une session à l'autre.
 ## Version 1.2.5 (Correctif Critique UI)
 - **FIX MAJEUR** : Résolution du bug bloquant qui empêchait le changement d'onglet sans les fermer au préalable. Le problème provenait d'une erreur de portée (scope JavaScript) dans le processus de rendu qui faisait planter silencieusement l'interface lors du clic.
 - **IMPORTANT** : Si vous aviez ce bug sur la version 1.2.4, l'auto-updater silencieux ne peut pas mettre à jour le fichier d'interface. Vous **devez absolument** double-cliquer sur le nouveau fichier d'installation `.exe` de la version 1.2.5 pour appliquer ce correctif.

@@ -22,6 +22,7 @@ if (isSystemPage) {
         switchProfile: (profile) => ipcRenderer.send('switch-profile', profile),
         onWorkspaceSwitched: (callback) => ipcRenderer.on('workspace-switched', (event, data) => callback(data)),
         onWorkspaceCounts: (callback) => ipcRenderer.on('workspace-counts', (event, data) => callback(data)),
+        onWorkspacesUpdated: (callback) => ipcRenderer.on('workspaces-updated', (event, data) => callback(data)),
         onBlockedUpdate: (callback) => ipcRenderer.on('blocked-update', (event, data) => callback(data)),
         onGeoUpdate: (callback) => ipcRenderer.on('geo-update', (event, data) => callback(data)),
 
@@ -57,8 +58,10 @@ if (isSystemPage) {
         toggleSidebar: (hidden) => ipcRenderer.send('toggle-sidebar', hidden),
         addWorkspace: (name, icon) => ipcRenderer.send('add-workspace', { name, icon }),
         deleteWorkspace: (id) => ipcRenderer.send('delete-workspace', id),
-        moveWorkspace: (id, direction) => ipcRenderer.send('move-workspace', { id, direction }),
+        moveWorkspace: (id, direction) => ipcRenderer.send('move-workspace', { id, direction }), // To reorder workspaces
+        moveTabToWorkspace: (tabId, targetWorkspace) => ipcRenderer.send('move-tab-to-workspace', { tabId, targetWorkspace }),
         switchProfile: (profile) => ipcRenderer.send('switch-profile', profile),
+        getWorkspaces: () => ipcRenderer.invoke('get-workspaces'),
         checkTPMStatus: () => ipcRenderer.invoke('check-tpm-status'),
         validateMasterPwd: (pwd) => ipcRenderer.invoke('validate-master-pwd', pwd),
         finalizeSecurity: (data) => ipcRenderer.send('finalize-security', data),

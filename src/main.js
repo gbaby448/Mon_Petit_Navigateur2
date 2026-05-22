@@ -9,7 +9,7 @@ const securityManager = require('./security');
 const DomusUpdater = require('./updater');
 
 let domusUpdater = null;
-const DOMUS_VERSION = '1.2.5';
+const DOMUS_VERSION = '1.2.6';
 
 // CONFIGURATION DE RENDU ULTRA-FLUIDE ET HYPER-ÉCONOME (GPU BASSE CONSOMMATION)
 app.commandLine.appendSwitch('force-low-power-gpu'); // Force l'utilisation du GPU économe (iGPU) pour économiser l'énergie et éviter le dGPU dédié
@@ -37,11 +37,20 @@ const cardsPath = path.join(userDataPath, 'domus-cards.json');
 const archivesPath = path.join(userDataPath, 'domus-archives.json');
 const downloadsPath = path.join(userDataPath, 'domus-downloads.json');
 const extensionsDbPath = path.join(userDataPath, 'domus-extensions.json');
+const workspacesPath = path.join(userDataPath, 'domus-workspaces.json');
 const extensionsDirPath = path.join(userDataPath, 'domus-extensions');
 
 let win = null;
 let tabCounter = 0;
 const tabs = new Map();
+let currentWorkspace = 'default';
+
+// Initialize default workspaces
+const defaultWorkspaces = [
+    { id: 'default', name: 'Standard', icon: '🏠', isPrivate: false },
+    { id: 'work', name: 'Travail', icon: '💼', isPrivate: false },
+    { id: 'private', name: 'Mode Privé', icon: '🕵️', isPrivate: true }
+];
 
 // Helpers de données
 const loadData = (p, def = []) => {
@@ -316,8 +325,9 @@ ipcMain.on('new-tab', (e, data) => {
         isShadow = !!data.isShadow;
     }
     const id = `tab-${tabCounter++}`;
-    tabs.set(id, { id, url, active: true, isShadow });
-    win.webContents.send('tab-created', { id, url, active: true, isShadow });
+    const newTab = { id, url, active: true, isShadow, workspace: currentWorkspace };
+    tabs.set(id, newTab);
+    win.webContents.send('tab-created', newTab);
 });
 
 
@@ -350,8 +360,9 @@ const openInternalPage = (url) => {
         }
     } else {
         const id = `tab-${tabCounter++}`;
-        tabs.set(id, { id, url, active: true });
-        win.webContents.send('tab-created', { id, url, active: true });
+        const newTab = { id, url, active: true, workspace: currentWorkspace };
+        tabs.set(id, newTab);
+        win.webContents.send('tab-created', newTab);
         activeTabId = id;
     }
 };
@@ -854,6 +865,97 @@ function createWindow() {
 }
 
 app.on('will-quit', () => globalShortcut.unregisterAll());
+
+// =========================================================================
+// 💼 GESTION DES ESPACES DE TRAVAIL (WORKSPACES)
+// =========================================================================
+
+ipcMain.handle('get-workspaces', () => {
+    let workspaces = loadData(workspacesPath, defaultWorkspaces);
+    // Assurer que les espaces par défaut existent toujours
+    const defaultIds = defaultWorkspaces.map(w => w.id);
+    const missingDefaults = defaultWorkspaces.filter(w => !workspaces.find(cw => cw.id === w.id));
+    if (missingDefaults.length > 0) {
+        workspaces = [...missingDefaults, ...workspaces];
+        saveData(workspacesPath, workspaces);
+    }
+    return workspaces;
+});
+
+ipcMain.on('switch-profile', (e, profileId) => {
+    currentWorkspace = profileId;
+    let workspaces = loadData(workspacesPath, defaultWorkspaces);
+    const ws = workspaces.find(w => w.id === profileId);
+    
+    // Renvoyer les onglets qui appartiennent à ce workspace
+    const wsTabs = Array.from(tabs.values()).filter(t => t.workspace === profileId);
+    
+    if (win && !win.isDestroyed()) {
+        win.webContents.send('workspace-switched', { 
+            profile: profileId, 
+            tabs: wsTabs,
+            isPrivate: ws ? ws.isPrivate : false 
+        });
+    }
+});
+
+ipcMain.on('add-workspace', (e, data) => {
+    let workspaces = loadData(workspacesPath, defaultWorkspaces);
+    const newWs = {
+        id: 'ws-' + Date.now(),
+        name: data.name,
+        icon: data.icon,
+        isPrivate: false
+    };
+    workspaces.push(newWs);
+    saveData(workspacesPath, workspaces);
+    
+    if (win && !win.isDestroyed()) {
+        win.webContents.send('workspaces-updated', workspaces);
+    }
+});
+
+ipcMain.on('delete-workspace', (e, id) => {
+    // Ne pas supprimer les espaces par défaut
+    if (['default', 'work', 'private'].includes(id)) return;
+    
+    let workspaces = loadData(workspacesPath, defaultWorkspaces);
+    workspaces = workspaces.filter(w => w.id !== id);
+    saveData(workspacesPath, workspaces);
+    
+    // Déplacer les onglets de cet espace vers l'espace par défaut
+    for (let [tabId, tab] of tabs.entries()) {
+        if (tab.workspace === id) {
+            tab.workspace = 'default';
+            tabs.set(tabId, tab);
+        }
+    }
+    
+    if (currentWorkspace === id) {
+        currentWorkspace = 'default';
+        if (win && !win.isDestroyed()) {
+            win.webContents.send('workspace-switched', { 
+                profile: 'default', 
+                tabs: Array.from(tabs.values()).filter(t => t.workspace === 'default'),
+                isPrivate: false 
+            });
+        }
+    }
+    
+    if (win && !win.isDestroyed()) {
+        win.webContents.send('workspaces-updated', workspaces);
+    }
+});
+
+ipcMain.on('move-tab-to-workspace', (e, data) => {
+    const { tabId, targetWorkspace } = data;
+    if (tabs.has(tabId)) {
+        const tab = tabs.get(tabId);
+        tab.workspace = targetWorkspace;
+        tabs.set(tabId, tab);
+        // L'interface gérera la disparition de l'onglet visuellement s'il ne fait plus partie du workspace courant
+    }
+});
 
 // --- SERVICES DE CRYPTOGRAPHIE AVANCÉS ---
 ipcMain.handle('encrypt-data', (e, text) => {
