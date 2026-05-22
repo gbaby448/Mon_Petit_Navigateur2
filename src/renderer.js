@@ -699,6 +699,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (tabsContainer.children.length === 0) {
             if (welcomeScreen) welcomeScreen.style.display = 'flex';
+        } else {
+            if (id === activeTabId) {
+                const visibleTabs = Array.from(document.querySelectorAll('.tab')).filter(t => t.style.display !== 'none');
+                if (visibleTabs.length > 0) {
+                    const lastTabId = visibleTabs[visibleTabs.length - 1].id.replace('ui-', '');
+                    window.domusAPI.switchTab(lastTabId);
+                } else {
+                    if (welcomeScreen) welcomeScreen.style.display = 'flex';
+                }
+            }
         }
     });
 
@@ -1189,10 +1199,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const wsIconSelector = document.getElementById('ws-icon-selector');
     const wsNameInput = document.getElementById('ws-name-input');
     
+    const btnOpenAddWs = document.getElementById('btn-open-add-ws');
+    
     if (btnCreateWs && createWsModal) {
         btnCreateWs.onclick = (e) => {
             e.stopPropagation();
             closeProfileFlyout();
+            createWsModal.classList.remove('hidden');
+        };
+    }
+    
+    if (btnOpenAddWs && createWsModal) {
+        btnOpenAddWs.onclick = () => {
             createWsModal.classList.remove('hidden');
         };
     }

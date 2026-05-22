@@ -1,5 +1,8 @@
 # Notes de version - Domus Browser Pro
 
+## Version 1.2.8 (Correctif Fermeture Onglet & Bouton Espace)
+- **FIX** : Résolution du bug de l'écran noir lors de la fermeture de l'onglet actif. Le navigateur bascule désormais intelligemment sur le dernier onglet visible de l'espace courant.
+- **FIX** : Rétablissement du bouton "Nouvel Espace" dans le menu de gauche qui avait perdu son interactivité suite au récent nettoyage du code.
 ## Version 1.2.7 (Correctif Espaces & Drag-and-Drop)
 - **FIX MAJEUR** : Résolution de l'erreur de syntaxe (`wsNameInput`) causant un écran noir et bloquant l'affichage des onglets.
 - **FIX** : Affichage correct des pages web lors du changement d'espace (les onglets inactifs sont désormais proprement masqués).
