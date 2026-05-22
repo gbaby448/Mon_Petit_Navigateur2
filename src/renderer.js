@@ -745,7 +745,10 @@ document.addEventListener('DOMContentLoaded', () => {
         currentProfile = data.profile;
         
         // Cacher tous les onglets UI et webviews
-        document.querySelectorAll('.tab').forEach(t => t.style.display = 'none');
+        document.querySelectorAll('.tab').forEach(t => {
+            t.style.display = 'none';
+            t.classList.add('ws-hidden');
+        });
         document.querySelectorAll('webview').forEach(wv => {
             wv.classList.remove('active');
             // La visibilité du webview est gérée par la classe .active dans style.css
@@ -755,6 +758,7 @@ document.addEventListener('DOMContentLoaded', () => {
         data.tabs.forEach(tabData => {
             const existingTab = document.getElementById(`ui-${tabData.id}`);
             if (existingTab) {
+                existingTab.classList.remove('ws-hidden');
                 existingTab.style.display = 'flex'; // Remettre visible
             } else {
                 createTabElement(tabData);
@@ -2031,6 +2035,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateTabsVisibility() {
         document.querySelectorAll('.tab').forEach(tabEl => {
+            if (tabEl.classList.contains('ws-hidden')) return;
             tabEl.classList.remove('stacked-tab', 'stack-leader', 'stack-collapsed', 'stack-expanded');
             tabEl.style.display = '';
             const badge = tabEl.querySelector('.stack-badge');
@@ -3288,6 +3293,29 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    // TEST SCRIPT
+    setTimeout(() => {
+        console.log("[TEST] Creating tab 1...");
+        window.domusAPI.createTab({ url: 'domus://newtab' });
+        
+        setTimeout(() => {
+            console.log("[TEST] Creating tab 2...");
+            window.domusAPI.createTab({ url: 'domus://newtab' });
+            
+            setTimeout(() => {
+                console.log(`[TEST] Closing active tab: ${activeTabId}`);
+                window.domusAPI.closeTab(activeTabId);
+                
+                setTimeout(() => {
+                    console.log(`[TEST] After close, activeTabId = ${activeTabId}`);
+                    console.log(`[TEST] Visible tabs:`, Array.from(document.querySelectorAll('.tab')).map(t => t.id).join(', '));
+                    require('electron').ipcRenderer.send('quit-app');
+                }, 1000);
+            }, 1000);
+        }, 1000);
+    }, 2000);
+
     } catch (e) {
         console.error("FATAL RENDERER ERROR:", e);
     }

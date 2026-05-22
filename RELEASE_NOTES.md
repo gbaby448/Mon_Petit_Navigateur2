@@ -1,5 +1,7 @@
 # Notes de version - Domus Browser Pro
 
+## Version 1.3.0 (Stabilité Ultime & Isolation Espaces)
+- **FIX CRITIQUE** : Résolution du "fantôme des espaces de travail". Lors de la fermeture d'un onglet, une fonction de mise à jour rendait accidentellement visibles les onglets cachés des autres espaces de travail. Cela causait un écran noir profond, car le navigateur essayait d'afficher un onglet appartenant à un espace non-actif. L'isolation visuelle et logique des espaces est désormais 100% étanche.
 ## Version 1.2.8 (Correctif Fermeture Onglet & Bouton Espace)
 - **FIX** : Résolution du bug de l'écran noir lors de la fermeture de l'onglet actif. Le navigateur bascule désormais intelligemment sur le dernier onglet visible de l'espace courant.
 - **FIX** : Rétablissement du bouton "Nouvel Espace" dans le menu de gauche qui avait perdu son interactivité suite au récent nettoyage du code.
