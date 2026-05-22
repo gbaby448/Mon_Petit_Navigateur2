@@ -698,16 +698,34 @@ document.addEventListener('DOMContentLoaded', () => {
         updateTabsVisibility();
 
         if (tabsContainer.children.length === 0) {
-            if (welcomeScreen) welcomeScreen.style.display = 'flex';
+            if (welcomeScreen) {
+                welcomeScreen.style.display = 'flex';
+                welcomeScreen.style.height = '100%';
+                welcomeScreen.style.opacity = '1';
+                welcomeScreen.style.pointerEvents = 'auto';
+            }
+            if (urlInput) urlInput.value = '';
         } else {
-            if (id === activeTabId) {
+            console.log(`[Renderer] onTabClosed: id=${id}, activeTabId=${activeTabId}`);
+            if (String(id) === String(activeTabId)) {
                 const visibleTabs = Array.from(document.querySelectorAll('.tab')).filter(t => t.style.display !== 'none');
+                console.log(`[Renderer] onTabClosed: visibleTabs.length = ${visibleTabs.length}`);
                 if (visibleTabs.length > 0) {
                     const lastTabId = visibleTabs[visibleTabs.length - 1].id.replace('ui-', '');
+                    console.log(`[Renderer] onTabClosed: switching to lastTabId = ${lastTabId}`);
                     window.domusAPI.switchTab(lastTabId);
                 } else {
-                    if (welcomeScreen) welcomeScreen.style.display = 'flex';
+                    console.log(`[Renderer] onTabClosed: no visible tabs, showing welcome screen`);
+                    if (welcomeScreen) {
+                        welcomeScreen.style.display = 'flex';
+                        welcomeScreen.style.height = '100%';
+                        welcomeScreen.style.opacity = '1';
+                        welcomeScreen.style.pointerEvents = 'auto';
+                    }
+                    if (urlInput) urlInput.value = '';
                 }
+            } else {
+                console.log(`[Renderer] onTabClosed: closed tab is NOT active tab. Keeping current tab.`);
             }
         }
     });
