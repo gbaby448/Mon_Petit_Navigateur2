@@ -815,57 +815,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    const btnOpenAddWs = document.getElementById('btn-open-add-ws');
-    const addWsModal = document.getElementById('add-ws-modal');
-    const btnCancelWs = document.getElementById('btn-cancel-ws');
-    const btnConfirmWs = document.getElementById('btn-confirm-ws');
-    const wsNameInput = document.getElementById('ws-name-input');
-    const iconOptions = document.querySelectorAll('.icon-option');
-    const pageSnapshotBg = document.getElementById('page-snapshot-bg');
-    let selectedIcon = '🚀';
-
-    // Réception du snapshot de modularité
-    window.domusAPI.onPageSnapshot((url) => {
-        if (pageSnapshotBg) {
-            pageSnapshotBg.style.backgroundImage = `url(${url})`;
-            pageSnapshotBg.classList.remove('hidden');
-        }
-    });
-
-    if (btnOpenAddWs) {
-        btnOpenAddWs.onclick = () => {
-            addWsModal.classList.remove('hidden');
-            window.domusAPI.resizeActiveTab({ isModalOpen: true });
-        };
-    }
-
-    if (btnCancelWs) {
-        btnCancelWs.onclick = () => {
-            addWsModal.classList.add('hidden');
-            if (pageSnapshotBg) pageSnapshotBg.classList.add('hidden');
-            window.domusAPI.resizeActiveTab({ isModalOpen: false });
-        };
-    }
-
-    iconOptions.forEach(opt => {
-        opt.onclick = () => {
-            iconOptions.forEach(o => o.classList.remove('selected'));
-            opt.classList.add('selected');
-            selectedIcon = opt.dataset.icon;
-        };
-    });
-
-    if (btnConfirmWs) {
-        btnConfirmWs.onclick = () => {
-            const name = wsNameInput.value.trim();
-            if (!name) return showDomusToast("Veuillez entrer un nom.");
-            window.domusAPI.addWorkspace(name, selectedIcon);
-            addWsModal.classList.add('hidden');
-            if (pageSnapshotBg) pageSnapshotBg.classList.add('hidden');
-            window.domusAPI.resizeActiveTab({ isModalOpen: false });
-            wsNameInput.value = '';
-        };
-    }
 
     // =========================================================================
     // 🛡️ LOGIQUE SÉCURITÉ & TPM

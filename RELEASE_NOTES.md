@@ -1,5 +1,9 @@
 # Notes de version - Domus Browser Pro
 
+## Version 1.2.7 (Correctif Espaces & Drag-and-Drop)
+- **FIX MAJEUR** : Résolution de l'erreur de syntaxe (`wsNameInput`) causant un écran noir et bloquant l'affichage des onglets.
+- **FIX** : Affichage correct des pages web lors du changement d'espace (les onglets inactifs sont désormais proprement masqués).
+- **FIX** : Autorisation explicite du système d'exploitation Chromium (`dataTransfer.setData`) pour permettre le glisser-déposer fluide des onglets.
 ## Version 1.2.6 (Espaces de travail & Glisser-Déposer)
 - **NOUVEAU - Espaces de Travail (Workspaces)** : Création, gestion et basculement à chaud (Hot Swap) entre espaces de travail personnalisés.
 - **NOUVEAU - Fichier de Sauvegarde Modulaire** : Les espaces sont enregistrés dans un fichier dédié `domus-workspaces.json` pour isoler vos données de l'application.
