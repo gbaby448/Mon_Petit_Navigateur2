@@ -64,6 +64,19 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Drag and Drop State
     let draggedTabElement = null;
+
+    if (tabsContainer) {
+        // Support de glisser à la fin
+        tabsContainer.addEventListener('dragover', (e) => {
+            e.preventDefault();
+        });
+        tabsContainer.addEventListener('drop', (e) => {
+            e.preventDefault();
+            if (draggedTabElement && e.target === tabsContainer) {
+                tabsContainer.appendChild(draggedTabElement);
+            }
+        });
+    }
     let currentSettings = {};
     let currentProfile = 'default';
     let isZenMode = false;
@@ -380,6 +393,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     draggedTabElement = tabEl;
                     tabEl.style.opacity = '0.5';
                     e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/plain', tabEl.id); // Requis pour que le drag fonctionne correctement dans Electron/Chromium
                 });
                 tabEl.addEventListener('dragend', () => {
                     tabEl.style.opacity = '1';
@@ -403,17 +417,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 });
             }
-            
-            // Support de glisser à la fin
-            tabsContainer.addEventListener('dragover', (e) => {
-                e.preventDefault();
-            });
-            tabsContainer.addEventListener('drop', (e) => {
-                e.preventDefault();
-                if (draggedTabElement && e.target === tabsContainer) {
-                    tabsContainer.appendChild(draggedTabElement);
-                }
-            });
             
             tabsContainer.appendChild(tabEl);
 
@@ -712,8 +715,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.domusAPI.onWorkspaceSwitched((data) => {
         currentProfile = data.profile;
-        tabsContainer.innerHTML = '';
-        data.tabs.forEach(tab => createTabElement(tab));
+        
+        // Cacher tous les onglets UI et webviews
+        document.querySelectorAll('.tab').forEach(t => t.style.display = 'none');
+        document.querySelectorAll('webview').forEach(wv => {
+            wv.classList.remove('active');
+            // La visibilité du webview est gérée par la classe .active dans style.css
+        });
+        
+        // Afficher/Créer les onglets du workspace courant
+        data.tabs.forEach(tabData => {
+            const existingTab = document.getElementById(`ui-${tabData.id}`);
+            if (existingTab) {
+                existingTab.style.display = 'flex'; // Remettre visible
+            } else {
+                createTabElement(tabData);
+            }
+        });
+        
+        // Sélectionner un onglet valide pour ce workspace
+        const activeTab = data.tabs.find(t => t.active) || data.tabs[data.tabs.length - 1];
+        if (activeTab) {
+            window.domusAPI.switchTab(activeTab.id);
+        } else {
+            window.domusAPI.createTab({ url: 'domus://newtab' });
+        }
         
         // Gestion visuelle du mode privé
         if (data.isPrivate) {
