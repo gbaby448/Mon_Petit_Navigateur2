@@ -628,8 +628,9 @@ document.addEventListener('DOMContentLoaded', () => {
         allWebviews.forEach(wv => {
             if (wv.id === `view-${id}`) {
                 wv.classList.add('active');
-                wv.style.display = 'flex';
                 wv.style.opacity = '1';
+                wv.style.pointerEvents = 'auto';
+                wv.style.left = '0';
                 
                 // Si le mode cinéma est actif, on l'injecte dans le nouvel onglet activé!
                 if (isCinemaMode) {
@@ -653,8 +654,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             } else {
                 wv.classList.remove('active');
-                wv.style.display = 'none';
                 wv.style.opacity = '0';
+                wv.style.pointerEvents = 'none';
+                wv.style.left = '-9999px'; // Hard hide without breaking render process
             }
         });
     });
@@ -727,16 +729,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     // FORCER L'UI IMMÉDIATEMENT POUR ÉVITER L'ÉCRAN NOIR
                     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
                     fallbackTab.classList.add('active');
+                    activeTabElementId = `ui-${lastTabId}`;
+                    activeTabId = lastTabId;
                     
                     document.querySelectorAll('webview').forEach(wv => {
                         if (wv.id === `view-${lastTabId}`) {
                             wv.classList.add('active');
-                            wv.style.display = 'flex';
                             wv.style.opacity = '1';
+                            wv.style.pointerEvents = 'auto';
+                            wv.style.left = '0';
                         } else {
                             wv.classList.remove('active');
-                            wv.style.display = 'none';
                             wv.style.opacity = '0';
+                            wv.style.pointerEvents = 'none';
+                            wv.style.left = '-9999px';
                         }
                     });
                     
