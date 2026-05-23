@@ -628,6 +628,8 @@ document.addEventListener('DOMContentLoaded', () => {
         allWebviews.forEach(wv => {
             if (wv.id === `view-${id}`) {
                 wv.classList.add('active');
+                wv.style.display = 'flex';
+                wv.style.opacity = '1';
                 
                 // Si le mode cinéma est actif, on l'injecte dans le nouvel onglet activé!
                 if (isCinemaMode) {
@@ -640,17 +642,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     const currentUrl = wv.getURL();
                     if (currentUrl && !currentUrl.includes('domus://')) {
                         urlInput.value = currentUrl;
-                        updateUrlBarSecurityStyle(currentUrl);
+                        if (typeof updateUrlBarSecurityStyle === 'function') updateUrlBarSecurityStyle(currentUrl);
                     } else {
                         urlInput.value = 'domus://newtab';
-                        updateUrlBarSecurityStyle('domus://newtab');
+                        if (typeof updateUrlBarSecurityStyle === 'function') updateUrlBarSecurityStyle('domus://newtab');
                     }
                 } catch(e) {
                     urlInput.value = 'domus://newtab';
-                    updateUrlBarSecurityStyle('domus://newtab');
+                    if (typeof updateUrlBarSecurityStyle === 'function') updateUrlBarSecurityStyle('domus://newtab');
                 }
             } else {
                 wv.classList.remove('active');
+                wv.style.display = 'none';
+                wv.style.opacity = '0';
             }
         });
     });
@@ -707,12 +711,35 @@ document.addEventListener('DOMContentLoaded', () => {
             if (urlInput) urlInput.value = '';
         } else {
             console.log(`[Renderer] onTabClosed: id=${id}, activeTabId=${activeTabId}`);
-            if (String(id) === String(activeTabId)) {
-                const visibleTabs = Array.from(document.querySelectorAll('.tab')).filter(t => t.style.display !== 'none');
+            
+            // On vérifie si l'onglet fermé était l'actif OU s'il n'y a plus aucun onglet actif visuellement
+            const activeTabStillExists = document.querySelector('.tab.active') !== null;
+            
+            if (String(id) === String(activeTabId) || !activeTabStillExists) {
+                const visibleTabs = Array.from(document.querySelectorAll('.tab')).filter(t => t.style.display !== 'none' && !t.classList.contains('ws-hidden'));
                 console.log(`[Renderer] onTabClosed: visibleTabs.length = ${visibleTabs.length}`);
                 if (visibleTabs.length > 0) {
-                    const lastTabId = visibleTabs[visibleTabs.length - 1].id.replace('ui-', '');
+                    const fallbackTab = visibleTabs[visibleTabs.length - 1];
+                    const lastTabId = fallbackTab.id.replace('ui-', '');
+                    
                     console.log(`[Renderer] onTabClosed: switching to lastTabId = ${lastTabId}`);
+                    
+                    // FORCER L'UI IMMÉDIATEMENT POUR ÉVITER L'ÉCRAN NOIR
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    fallbackTab.classList.add('active');
+                    
+                    document.querySelectorAll('webview').forEach(wv => {
+                        if (wv.id === `view-${lastTabId}`) {
+                            wv.classList.add('active');
+                            wv.style.display = 'flex';
+                            wv.style.opacity = '1';
+                        } else {
+                            wv.classList.remove('active');
+                            wv.style.display = 'none';
+                            wv.style.opacity = '0';
+                        }
+                    });
+                    
                     window.domusAPI.switchTab(lastTabId);
                 } else {
                     console.log(`[Renderer] onTabClosed: no visible tabs, showing welcome screen`);
