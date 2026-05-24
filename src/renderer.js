@@ -34,30 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error("Unhandled Rejection:", event.reason);
     });
     
-    // START VISUAL DEBUG OVERLAY
-    const debugOverlay = document.createElement('div');
-    debugOverlay.style.position = 'fixed';
-    debugOverlay.style.bottom = '10px';
-    debugOverlay.style.right = '10px';
-    debugOverlay.style.background = 'rgba(0,0,0,0.8)';
-    debugOverlay.style.color = '#00ff88';
-    debugOverlay.style.padding = '10px';
-    debugOverlay.style.zIndex = '999999';
-    debugOverlay.style.fontFamily = 'monospace';
-    debugOverlay.style.fontSize = '10px';
-    debugOverlay.style.pointerEvents = 'none';
-    document.body.appendChild(debugOverlay);
-    
-    setInterval(() => {
-        let text = `activeTabId: ${activeTabId}\nactiveTabElementId: ${activeTabElementId}\n`;
-        document.querySelectorAll('.tab').forEach(t => {
-            text += `TAB: ${t.id} classes: ${t.className} disp: ${t.style.display}\n`;
-        });
-        document.querySelectorAll('webview').forEach(wv => {
-            text += `WV: ${wv.id} classes: ${wv.className} op: ${wv.style.opacity} left: ${wv.style.left}\n`;
-        });
-        debugOverlay.innerText = text;
-    }, 500);
+
     // END VISUAL DEBUG OVERLAY
 
     console.log("Renderer: Initialisation des modules...");
@@ -3372,27 +3349,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // TEST SCRIPT
-    setTimeout(() => {
-        console.log("[TEST] Creating tab 1...");
-        window.domusAPI.createTab({ url: 'domus://newtab' });
-        
-        setTimeout(() => {
-            console.log("[TEST] Creating tab 2...");
-            window.domusAPI.createTab({ url: 'domus://newtab' });
-            
-            setTimeout(() => {
-                console.log(`[TEST] Closing active tab: ${activeTabId}`);
-                window.domusAPI.closeTab(activeTabId);
-                
-                setTimeout(() => {
-                    console.log(`[TEST] After close, activeTabId = ${activeTabId}`);
-                    console.log(`[TEST] Visible tabs:`, Array.from(document.querySelectorAll('.tab')).map(t => t.id).join(', '));
-                    require('electron').ipcRenderer.send('quit-app');
-                }, 1000);
-            }, 1000);
-        }, 1000);
-    }, 2000);
+
 
     } catch (e) {
         console.error("FATAL RENDERER ERROR:", e);
