@@ -1554,10 +1554,15 @@ document.addEventListener('DOMContentLoaded', () => {
         if (query.length > 2) {
             try {
                 const suggestions = await window.domusAPI.fetchSuggestions(query);
-                if (suggestions && suggestions.length > 0) showSuggestions(suggestions);
-                else hideSuggestions();
+                if (document.activeElement === urlInput && suggestions && suggestions.length > 0) {
+                    showSuggestions(suggestions);
+                } else {
+                    hideSuggestions();
+                }
             } catch (err) { }
-        } else hideSuggestions();
+        } else {
+            hideSuggestions();
+        }
     }, 250));
 
     // --- ZEN MODE SHORTCUT (Alt+Z) ---
