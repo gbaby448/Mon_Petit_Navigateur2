@@ -78,8 +78,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let activeTabId = null;
     let activeTabElementId = null;
     const audibleTabs = new Map();
-    
-    // Drag and Drop State
+    const audibleTabs = new Map();
     let draggedTabElement = null;
 
     if (tabsContainer) {
@@ -102,8 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let isVideoAIEnabled = false;
     let isCinemaMode = false;
     const cinemaCSSKeys = new Map();
-    const tabStacks = new Map();
-
+    const cinemaCSSKeys = new Map();
     // =========================================================================
     // 🔔 SYSTÈME DE NOTIFICATION (TOAST)
     // =========================================================================
@@ -2019,73 +2017,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function handleTabDomainChange(tabId) {
-        const newDomain = getTabDomain(tabId);
-        
-        // Retirer le tabId de toute pile où il n'a plus le bon domaine
-        tabStacks.forEach((stack, domain) => {
-            if (stack.tabIds.has(tabId) && domain !== newDomain) {
-                stack.tabIds.delete(tabId);
-                if (stack.tabIds.size < 2) {
-                    tabStacks.delete(domain);
-                }
-            }
-        });
-
-        // Si le nouveau domaine a déjà une pile, on y ajoute l'onglet
-        if (newDomain) {
-            if (tabStacks.has(newDomain)) {
-                tabStacks.get(newDomain).tabIds.add(tabId);
-            } else {
-                // Créer une pile s'il y a d'autres onglets du même domaine
-                const matchingTabIds = [];
-                document.querySelectorAll('.tab').forEach(tabEl => {
-                    const tid = tabEl.id.replace('ui-', '');
-                    if (getTabDomain(tid) === newDomain) {
-                        matchingTabIds.push(tid);
-                    }
-                });
-                if (matchingTabIds.length >= 2) {
-                    tabStacks.set(newDomain, {
-                        collapsed: true,
-                        tabIds: new Set(matchingTabIds)
-                    });
-                }
-            }
-        }
-        
         updateTabsVisibility();
-    }
-
-    function stackTabsByDomain() {
-        tabStacks.clear();
-        const domains = new Map();
-        
-        document.querySelectorAll('.tab').forEach(tabEl => {
-            const tabId = tabEl.id.replace('ui-', '');
-            const domain = getTabDomain(tabId);
-            if (domain) {
-                if (!domains.has(domain)) domains.set(domain, []);
-                domains.get(domain).push(tabId);
-            }
-        });
-
-        let stackCreated = false;
-        domains.forEach((tabIds, domain) => {
-            if (tabIds.length >= 2) {
-                tabStacks.set(domain, {
-                    collapsed: true,
-                    tabIds: new Set(tabIds)
-                });
-                stackCreated = true;
-            }
-        });
-
-        updateTabsVisibility();
-        if (stackCreated) {
-            showDomusToast("Onglets empilés automatiquement par domaine 📚");
-        } else {
-            showDomusToast("Pas d'onglets de domaines identiques à empiler.");
-        }
     }
 
     function updateTabsVisibility() {
@@ -2095,61 +2027,6 @@ document.addEventListener('DOMContentLoaded', () => {
             tabEl.style.display = '';
             const badge = tabEl.querySelector('.stack-badge');
             if (badge) badge.remove();
-        });
-
-        tabStacks.forEach((stack, domain) => {
-            const tabIds = Array.from(stack.tabIds);
-            let leaderId = tabIds[0];
-            if (tabIds.includes(activeTabId)) {
-                leaderId = activeTabId;
-            }
-
-            tabIds.forEach(tabId => {
-                const tabEl = document.getElementById(`ui-${tabId}`);
-                if (!tabEl) return;
-
-                tabEl.classList.add('stacked-tab');
-                tabEl.dataset.domain = domain;
-
-                if (tabId === leaderId) {
-                    tabEl.classList.add('stack-leader');
-                    const badge = document.createElement('span');
-                    badge.className = 'stack-badge';
-                    
-                    if (stack.collapsed) {
-                        tabEl.classList.add('stack-collapsed');
-                        badge.textContent = ` 📚 ${tabIds.length}`;
-                        badge.title = "Pile d'onglets (Repliée). Clic gauche pour déplier.";
-                        
-                        badge.onclick = (e) => {
-                           e.stopPropagation();
-                           stack.collapsed = false;
-                           updateTabsVisibility();
-                        };
-                    } else {
-                        tabEl.classList.add('stack-expanded');
-                        badge.textContent = ` 📖`;
-                        badge.title = "Pile d'onglets (Déployée). Clic gauche pour replier.";
-                        
-                        badge.onclick = (e) => {
-                           e.stopPropagation();
-                           stack.collapsed = true;
-                           updateTabsVisibility();
-                        };
-                    }
-                    
-                    const titleEl = tabEl.querySelector('.tab-title');
-                    if (titleEl) {
-                        titleEl.after(badge);
-                    }
-                } else {
-                    if (stack.collapsed) {
-                        tabEl.style.display = 'none';
-                    } else {
-                        tabEl.classList.add('stack-expanded');
-                    }
-                }
-            });
         });
     }
 
@@ -2175,35 +2052,7 @@ document.addEventListener('DOMContentLoaded', () => {
             min-width: 180px;
         `;
 
-        const domain = getTabDomain(tabId);
-        let isInStack = false;
-        tabStacks.forEach(stack => {
-            if (stack.tabIds.has(tabId)) isInStack = true;
-        });
-
         const options = [];
-
-        options.push({
-            text: "📚 Empiler par domaine",
-            action: () => {
-                stackTabsByDomain();
-            }
-        });
-
-        if (isInStack) {
-            options.push({
-                text: "📖 Dissoudre cette pile",
-                action: () => {
-                    tabStacks.forEach((stack, dom) => {
-                        if (stack.tabIds.has(tabId)) {
-                            tabStacks.delete(dom);
-                        }
-                    });
-                    updateTabsVisibility();
-                    showDomusToast("Pile d'onglets dissoute.");
-                }
-            });
-        }
 
         options.push({
             text: "✕ Fermer cet onglet",
