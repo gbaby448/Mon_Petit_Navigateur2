@@ -20,6 +20,46 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnReload = document.getElementById('reload');
     
     // --- DÉMARRAGE IMMÉDIAT (ARCHITECTURE ULTRA-STABLE) ---
+    window.addEventListener('error', (event) => {
+        if (typeof showDomusToast === 'function') {
+            showDomusToast(`[CRASH] ${event.message} at ${event.filename}:${event.lineno}`, 'error');
+        }
+        console.error("Global Error:", event.error);
+    });
+
+    window.addEventListener('unhandledrejection', (event) => {
+        if (typeof showDomusToast === 'function') {
+            showDomusToast(`[PROMISE CRASH] ${event.reason}`, 'error');
+        }
+        console.error("Unhandled Rejection:", event.reason);
+    });
+    
+    // START VISUAL DEBUG OVERLAY
+    const debugOverlay = document.createElement('div');
+    debugOverlay.style.position = 'fixed';
+    debugOverlay.style.bottom = '10px';
+    debugOverlay.style.right = '10px';
+    debugOverlay.style.background = 'rgba(0,0,0,0.8)';
+    debugOverlay.style.color = '#00ff88';
+    debugOverlay.style.padding = '10px';
+    debugOverlay.style.zIndex = '999999';
+    debugOverlay.style.fontFamily = 'monospace';
+    debugOverlay.style.fontSize = '10px';
+    debugOverlay.style.pointerEvents = 'none';
+    document.body.appendChild(debugOverlay);
+    
+    setInterval(() => {
+        let text = `activeTabId: ${activeTabId}\nactiveTabElementId: ${activeTabElementId}\n`;
+        document.querySelectorAll('.tab').forEach(t => {
+            text += `TAB: ${t.id} classes: ${t.className} disp: ${t.style.display}\n`;
+        });
+        document.querySelectorAll('webview').forEach(wv => {
+            text += `WV: ${wv.id} classes: ${wv.className} op: ${wv.style.opacity} left: ${wv.style.left}\n`;
+        });
+        debugOverlay.innerText = text;
+    }, 500);
+    // END VISUAL DEBUG OVERLAY
+
     console.log("Renderer: Initialisation des modules...");
 
     const sidePanels = {
