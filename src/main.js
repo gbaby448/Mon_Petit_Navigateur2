@@ -9,7 +9,7 @@ const securityManager = require('./security');
 const DomusUpdater = require('./updater');
 
 let domusUpdater = null;
-const DOMUS_VERSION = '1.3.8';
+const DOMUS_VERSION = '1.3.9';
 
 // CONFIGURATION DE RENDU ULTRA-FLUIDE ET HYPER-ÉCONOME (GPU BASSE CONSOMMATION)
 app.commandLine.appendSwitch('force-low-power-gpu'); // Force l'utilisation du GPU économe (iGPU) pour économiser l'énergie et éviter le dGPU dédié
@@ -781,9 +781,9 @@ function createWindow() {
         win.webContents.insertCSS(`
             #domus-webview-context-menu { display: none !important; }
             /* FORCE DISABLE OLD TAB STACK UI */
-            .stacked-tab { border-left: none !important; margin-left: 0 !important; }
-            .stack-collapsed { border-left: none !important; background: transparent !important; }
-            .stack-badge { display: none !important; }
+            .tab.stacked-tab { border-left: none !important; margin-left: 0 !important; }
+            .tab.stack-collapsed { border-left: none !important; background: transparent !important; }
+            .tab .stack-badge { display: none !important; }
             .tab:not(.ws-hidden) { display: flex !important; }
         `);
     });

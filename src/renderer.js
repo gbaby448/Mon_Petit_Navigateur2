@@ -387,7 +387,7 @@ document.addEventListener('DOMContentLoaded', () => {
             tabEl.className = 'tab' + (data.active ? ' active' : '') + (data.isShadow ? ' shadow-tab' : '');
             tabEl.id = `ui-${data.id}`;
             const shadowBadge = data.isShadow ? '<span class="shadow-ghost-icon" title="Onglet Shadow Sécurisé" style="color:#d946ef; margin-right:4px;">👻</span>' : '';
-            tabEl.innerHTML = `${shadowBadge}<span class="tab-title">${data.title || (data.isShadow ? 'Paiement Shadow' : 'Nouvel Onglet')}</span><button class="tab-close">×</button>`;
+            tabEl.innerHTML = `${shadowBadge}<span class="tab-title">${data.title || (data.isShadow ? 'Paiement Shadow' : 'Nouvel Onglet')}</span><span class="tab-audio-icon hidden" style="margin-right: 4px; font-size: 11px;">🔊</span><button class="tab-close">×</button>`;
             
             tabEl.onclick = () => window.domusAPI.switchTab(data.id);
             tabEl.oncontextmenu = (e) => showTabContextMenu(e, data.id);
