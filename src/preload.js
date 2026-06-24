@@ -91,7 +91,7 @@ if (isSystemPage) {
         onTabAudioUpdate: (callback) => ipcRenderer.on('tab-audio-update', (event, data) => callback(data)),
 
         // --- TIME MACHINE & HISTORIQUE ---
-        archivePageReader: () => ipcRenderer.send('archive-page-reader'),
+        archivePageReader: (data) => ipcRenderer.send('archive-page-reader', data), // BUG 1 FIX : transmet titre+url
         getArchives: () => ipcRenderer.invoke('get-archives'),
         getArchiveData: (id) => ipcRenderer.invoke('get-archive-data', id),
         deleteArchive: (id) => ipcRenderer.invoke('delete-archive', id),
@@ -149,10 +149,8 @@ if (isSystemPage) {
             shortcuts.forEach(action => {
                 ipcRenderer.on(`shortcut-${action}`, () => callback(action));
             });
-            // Onglets 1-9
-            for (let i = 1; i <= 9; i++) {
-                ipcRenderer.on(`shortcut-goto-tab`, (_, n) => callback(`goto-tab-${n}`));
-            }
+            // BUG 4 FIX : un seul listener (la boucle créait 9 listeners identiques → déclenché 9×)
+            ipcRenderer.on('shortcut-goto-tab', (_, n) => callback(`goto-tab-${n}`));
         }
     });
 } else {

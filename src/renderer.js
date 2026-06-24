@@ -78,7 +78,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let activeTabId = null;
     let activeTabElementId = null;
     const audibleTabs = new Map();
-    const audibleTabs = new Map();
     let draggedTabElement = null;
 
     if (tabsContainer) {
@@ -100,7 +99,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentTheme = 'default';
     let isVideoAIEnabled = false;
     let isCinemaMode = false;
-    const cinemaCSSKeys = new Map();
     const cinemaCSSKeys = new Map();
     // =========================================================================
     // 🔔 SYSTÈME DE NOTIFICATION (TOAST)
@@ -196,6 +194,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.body.appendChild(domusSuggestBox);
 
     let selectedSuggestionIndex = -1;
+    let suggestionsVisible = false; // BUG 12 FIX : guard fiable pour hideSuggestions
 
     function showSuggestions(suggestions) {
         domusSuggestBox.innerHTML = '';
@@ -247,11 +246,13 @@ document.addEventListener('DOMContentLoaded', () => {
             padding: 5px 0 !important;
         `;
 
+        suggestionsVisible = true; // BUG 12 FIX
         window.domusAPI.resizeActiveTab({ suggestionsActive: true });
     }
 
     function hideSuggestions() {
-        if (domusSuggestBox.style.display === 'none') return;
+        if (!suggestionsVisible) return; // BUG 12 FIX : guard fiable (setProperty !important était unreliable)
+        suggestionsVisible = false;
         domusSuggestBox.style.setProperty('display', 'none', 'important');
         domusSuggestBox.innerHTML = '';
         selectedSuggestionIndex = -1;
@@ -707,15 +708,6 @@ document.addEventListener('DOMContentLoaded', () => {
         audibleTabs.delete(id);
         updateAudioPanel();
 
-        // Nettoyer les piles d'onglets
-        tabStacks.forEach((stack, domain) => {
-            if (stack.tabIds.has(id)) {
-                stack.tabIds.delete(id);
-                if (stack.tabIds.size < 2) {
-                    tabStacks.delete(domain);
-                }
-            }
-        });
         updateTabsVisibility();
 
         if (tabsContainer.children.length === 0) {
@@ -3093,20 +3085,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     initAudioBoosterUI();
 
-    window.domusAPI.onTabCreated(() => {
-        setTimeout(() => {
-            if (boosterToggle && boosterPreset) {
-                const enabled = boosterToggle.checked;
-                const preset = boosterPreset.value;
-                const webviews = document.querySelectorAll('webview');
-                webviews.forEach(wv => {
-                    try {
-                        wv.send('audio-booster-update', { enabled, preset });
-                    } catch (e) {}
-                });
-            }
-        }, 1000);
-    });
+    // BUG 3 FIX : double onTabCreated supprimé (memory leak + comportement impévisible)
+    // Le moteur audio est notifié via handleBoosterChange() lors de chaque changement de paramètres,
+    // et runAudioEnhancer() dans preload.js lit les settings au chargement de chaque page.
 
 
 
@@ -3120,7 +3101,8 @@ document.addEventListener('DOMContentLoaded', () => {
             var getActiveWV = function() { return activeTabId ? document.getElementById('view-' + activeTabId) : null; };
 
             var getTabIds = function() {
-                return Array.from(document.querySelectorAll('.tab-item[data-tab-id]')).map(function(el) { return el.dataset.tabId; });
+            // BUG 5 FIX : l'ancien sélecteur '.tab-item[data-tab-id]' n'existait pas dans le DOM
+                return Array.from(document.querySelectorAll('.tab:not(.ws-hidden)')).map(function(el) { return el.id.replace('ui-', ''); });
             };
 
             if (action.startsWith('goto-tab-')) {
@@ -3158,7 +3140,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     wv = getActiveWV(); if (wv) wv.reload(); break;
                 case 'hard-reload':
                     wv = getActiveWV(); if (wv) wv.reloadIgnoringCache(); break;
-                case 'escape':
+                case 'stop': // BUG 13 FIX : 'escape' n'existait pas dans la liste des shortcuts, c'est 'stop'
                     wv = getActiveWV(); if (wv) wv.stop();
                     Object.values(sidePanels).forEach(function(p) { if (p && !p.classList.contains('hidden')) p.classList.add('hidden'); });
                     if (wv) wv.focus();

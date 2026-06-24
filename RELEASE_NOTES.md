@@ -1,5 +1,31 @@
 # Notes de version - Domus Browser Pro
 
+## 🛠️ Version 1.3.11 — Patch de Stabilité Majeur (9 bugs corrigés)
+*Date : 24 juin 2026*
+
+Cette version est un **patch de stabilisation critique** qui corrige 9 bugs identifiés lors d'un audit approfondi du moteur Domus.
+
+### 🔴 Corrections Critiques
+- **[main.js] `isTrustedSender` trop restrictif** : Le coffre-fort (mots de passe, cartes bancaires) était inaccessible depuis les pages internes (historique, téléchargements, paramètres). Corrigé en autorisant les pages internes `file://`.
+- **[preload.js] Time Machine cassé** : `archivePageReader()` n'envoyait jamais les données (titre/URL) au processus principal. La page était archivée sans contenu.
+- **[preload.js] Raccourcis Ctrl+1-9 déclenchés 9 fois** : Une boucle `for` incorrecte créait 9 listeners identiques sur `shortcut-goto-tab`. Chaque pression du raccourci activait la logique 9 fois simultanément.
+- **[renderer.js] Ctrl+Tab et Ctrl+1-9 inopérants** : Le sélecteur CSS `.tab-item[data-tab-id]` n'existait pas dans le DOM (les onglets utilisent la classe `.tab`). Tous les raccourcis de navigation entre onglets étaient silencieusement inactifs.
+
+### 🟠 Corrections Majeures
+- **[main.js] Boutons ▲▼ des espaces de travail sans effet** : Le handler IPC `move-workspace` était complètement absent. La réorganisation des espaces n'était jamais persistée.
+- **[renderer.js] Double `onTabCreated` — memory leak** : Deux listeners `onTabCreated` actifs simultanément causaient un empilement de callbacks à chaque création d'onglet.
+- **[index.html] Liste navigateurs invisible dans le Wizard** : L'ID HTML `detected-browsers` ne correspondait pas à l'ID `browser-detected-list` attendu par le renderer. La liste de migration restait vide.
+- **[renderer.js] Touche Échap inopérante** : Le `case 'escape'` dans le switch des raccourcis n'existait pas dans la liste des actions (le canal IPC envoie `'stop'`).
+- **[renderer.js] Guard de fermeture des suggestions défaillante** : `hideSuggestions()` utilisait `style.display === 'none'` pour vérifier l'état, mais après un `setProperty(..., 'important')`, la comparaison pouvait échouer. Remplacé par un booléen dédié.
+
+### 📦 Fichiers modifiés
+- `src/main.js` : Correctifs isTrustedSender + ajout handler move-workspace + bump v1.3.11
+- `src/preload.js` : Correctifs archivePageReader + shortcut-goto-tab
+- `src/renderer.js` : Correctifs getTabIds + double onTabCreated + hideSuggestions + case 'stop'
+- `src/index.html` : Correctif ID browser-detected-list
+
+---
+
 ## Version 1.3.0 (Stabilité Ultime & Isolation Espaces)
 - **FIX CRITIQUE** : Résolution du "fantôme des espaces de travail". Lors de la fermeture d'un onglet, une fonction de mise à jour rendait accidentellement visibles les onglets cachés des autres espaces de travail. Cela causait un écran noir profond, car le navigateur essayait d'afficher un onglet appartenant à un espace non-actif. L'isolation visuelle et logique des espaces est désormais 100% étanche.
 ## Version 1.2.8 (Correctif Fermeture Onglet & Bouton Espace)

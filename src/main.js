@@ -9,7 +9,7 @@ const securityManager = require('./security');
 const DomusUpdater = require('./updater');
 
 let domusUpdater = null;
-const DOMUS_VERSION = '1.3.9';
+const DOMUS_VERSION = '1.3.11';
 
 // CONFIGURATION DE RENDU ULTRA-FLUIDE ET HYPER-ÉCONOME (GPU BASSE CONSOMMATION)
 app.commandLine.appendSwitch('force-low-power-gpu'); // Force l'utilisation du GPU économe (iGPU) pour économiser l'énergie et éviter le dGPU dédié
@@ -119,7 +119,13 @@ ipcMain.handle('init-vault', async (e, pwd) => {
 });
 
 // Aide à valider que l'appelant IPC est bien la fenêtre principale Domus (anti-injection WebView)
-const isTrustedSender = (e) => win && !win.isDestroyed() && e.sender.id === win.webContents.id;
+// BUG 2 FIX : accepte aussi les pages internes (file://) chargées dans les webviews de Domus
+const isTrustedSender = (e) => {
+    if (!win || win.isDestroyed()) return false;
+    if (e.sender.id === win.webContents.id) return true;
+    // Pages internes de confiance (history.html, downloads.html, settings.html, etc.)
+    try { return e.sender.getURL().startsWith('file://'); } catch { return false; }
+};
 
 // --- MOTS DE PASSE ---
 ipcMain.handle('get-passwords', (e) => {
@@ -965,6 +971,24 @@ ipcMain.on('move-tab-to-workspace', (e, data) => {
         tab.workspace = targetWorkspace;
         tabs.set(tabId, tab);
         // L'interface gérera la disparition de l'onglet visuellement s'il ne fait plus partie du workspace courant
+    }
+});
+
+// BUG 14 FIX : handler move-workspace manquant — les boutons ▲▼ n'avaient aucun effet
+ipcMain.on('move-workspace', (e, { id, direction }) => {
+    let workspaces = loadData(workspacesPath, defaultWorkspaces);
+    const idx = workspaces.findIndex(w => w.id === id);
+    if (idx === -1) return;
+
+    const newIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (newIdx < 0 || newIdx >= workspaces.length) return;
+
+    // Intervertir les deux espaces de travail
+    [workspaces[idx], workspaces[newIdx]] = [workspaces[newIdx], workspaces[idx]];
+    saveData(workspacesPath, workspaces);
+
+    if (win && !win.isDestroyed()) {
+        win.webContents.send('workspaces-updated', workspaces);
     }
 });
 
