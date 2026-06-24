@@ -8,8 +8,26 @@ const dns = require('dns');
 const securityManager = require('./security');
 const DomusUpdater = require('./updater');
 
+const getAppVersion = () => {
+    const UPDATE_STAGING_DIR = path.join(
+        process.env.APPDATA || path.join(require('os').homedir(), 'AppData', 'Roaming'),
+        'DomusPro'
+    );
+    const appDataMetaPath = path.join(UPDATE_STAGING_DIR, 'metadata.json');
+    if (fs.existsSync(appDataMetaPath)) {
+        try {
+            const meta = JSON.parse(fs.readFileSync(appDataMetaPath, 'utf8'));
+            if (meta.version) return meta.version;
+        } catch (e) {}
+    }
+    try {
+        return require('../package.json').version;
+    } catch (e) {
+        return '1.4.0';
+    }
+};
+const DOMUS_VERSION = getAppVersion();
 let domusUpdater = null;
-const DOMUS_VERSION = '1.3.12';
 
 // CONFIGURATION DE RENDU ULTRA-FLUIDE ET HYPER-ÉCONOME (GPU BASSE CONSOMMATION)
 app.commandLine.appendSwitch('force-low-power-gpu'); // Force l'utilisation du GPU économe (iGPU) pour économiser l'énergie et éviter le dGPU dédié
