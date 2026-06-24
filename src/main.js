@@ -39,11 +39,14 @@ const downloadsPath = path.join(userDataPath, 'domus-downloads.json');
 const extensionsDbPath = path.join(userDataPath, 'domus-extensions.json');
 const workspacesPath = path.join(userDataPath, 'domus-workspaces.json');
 const extensionsDirPath = path.join(userDataPath, 'domus-extensions');
+const sessionPath = path.join(userDataPath, 'domus-session.json');
 
 let win = null;
 let tabCounter = 0;
 const tabs = new Map();
 let currentWorkspace = 'default';
+let activeTabId = null;
+const closedTabsStack = [];
 
 // Initialize default workspaces
 const defaultWorkspaces = [
@@ -70,6 +73,82 @@ const saveData = (p, d) => {
         console.error(`[DOMUS] Échec de sauvegarde sur ${p}:`, e.message);
     }
 };
+
+const saveSession = () => {
+    try {
+        const workspaces = loadData(workspacesPath, defaultWorkspaces);
+        const privateWorkspaceIds = new Set(
+            workspaces.filter(w => w.isPrivate).map(w => w.id)
+        );
+        
+        const tabsArray = Array.from(tabs.values())
+            .filter(t => !t.isShadow && !privateWorkspaceIds.has(t.workspace));
+            
+        let savedActiveTabId = activeTabId;
+        if (activeTabId && tabs.has(activeTabId)) {
+            const activeTab = tabs.get(activeTabId);
+            if (activeTab.isShadow || privateWorkspaceIds.has(activeTab.workspace)) {
+                savedActiveTabId = null;
+            }
+        }
+        
+        saveData(sessionPath, {
+            currentWorkspace: privateWorkspaceIds.has(currentWorkspace) ? 'default' : currentWorkspace,
+            activeTabId: savedActiveTabId,
+            tabs: tabsArray
+        });
+    } catch (e) {
+        console.error("[DOMUS] Échec de sauvegarde de session:", e.message);
+    }
+};
+
+const loadSession = () => {
+    try {
+        if (fs.existsSync(sessionPath)) {
+            const sessionData = loadData(sessionPath, null);
+            if (sessionData && Array.isArray(sessionData.tabs) && sessionData.tabs.length > 0) {
+                tabs.clear();
+                let maxIdNum = 0;
+                sessionData.tabs.forEach(t => {
+                    tabs.set(t.id, t);
+                    const match = t.id.match(/tab-(\d+)/);
+                    if (match) {
+                        const num = parseInt(match[1], 10);
+                        if (num > maxIdNum) maxIdNum = num;
+                    }
+                });
+                tabCounter = maxIdNum + 1;
+                
+                if (sessionData.currentWorkspace) {
+                    currentWorkspace = sessionData.currentWorkspace;
+                }
+                if (sessionData.activeTabId) {
+                    activeTabId = sessionData.activeTabId;
+                }
+                console.log(`[DOMUS] Session restaurée avec ${tabs.size} onglet(s) dans le workspace "${currentWorkspace}"`);
+                return true;
+            }
+        }
+    } catch (e) {
+        console.error("[DOMUS] Échec de chargement de session:", e.message);
+    }
+    return false;
+};
+
+const createNewTabInWorkspace = (url, isShadow = false, workspaceId = null) => {
+    const id = `tab-${tabCounter++}`;
+    const targetWorkspace = workspaceId || currentWorkspace;
+    const newTab = { id, url, active: true, isShadow, workspace: targetWorkspace };
+    tabs.set(id, newTab);
+    if (win && !win.isDestroyed()) {
+        win.webContents.send('tab-created', newTab);
+    }
+    saveSession();
+    return newTab;
+};
+
+// Charger la session en mémoire au démarrage
+loadSession();
 
 // --- PERSISTENCE & SETTINGS ---
 ipcMain.handle('get-settings', () => loadData(settingsPath, { theme: 'dark', accentColor: '#00ff88', searchEngine: 'google', securitySetup: false }));
@@ -330,20 +409,14 @@ ipcMain.on('new-tab', (e, data) => {
         url = data.url;
         isShadow = !!data.isShadow;
     }
-    const id = `tab-${tabCounter++}`;
-    const newTab = { id, url, active: true, isShadow, workspace: currentWorkspace };
-    tabs.set(id, newTab);
-    win.webContents.send('tab-created', newTab);
+    const newTab = createNewTabInWorkspace(url, isShadow);
+    activeTabId = newTab.id;
 });
-
-
 
 // --- GESTION DES FENÊTRES ---
 ipcMain.on('window-minimize', () => win.minimize());
 ipcMain.on('window-maximize', () => win.isMaximized() ? win.unmaximize() : win.maximize());
 ipcMain.on('window-close', () => app.quit());
-
-let activeTabId = null;
 
 // --- GESTION DES BOUTONS INTELLIGENTS (Toggle & No Duplicates) ---
 const openInternalPage = (url) => {
@@ -365,12 +438,10 @@ const openInternalPage = (url) => {
             activeTabId = existingId;
         }
     } else {
-        const id = `tab-${tabCounter++}`;
-        const newTab = { id, url, active: true, workspace: currentWorkspace };
-        tabs.set(id, newTab);
-        win.webContents.send('tab-created', newTab);
-        activeTabId = id;
+        const newTab = createNewTabInWorkspace(url);
+        activeTabId = newTab.id;
     }
+    saveSession();
 };
 
 ipcMain.on('open-history', () => openInternalPage('domus://history'));
@@ -619,13 +690,86 @@ ipcMain.handle('install-extension-from-cws', async (e, extensionId) => {
 
 ipcMain.on('switch-tab', (e, id) => {
     activeTabId = id;
+    for (let [tid, t] of tabs.entries()) {
+        t.active = (tid === id);
+    }
     win.webContents.send('tab-switched', id);
+    saveSession();
 });
 
 ipcMain.on('close-tab', (e, id) => {
-    tabs.delete(id);
+    if (tabs.has(id)) {
+        const tab = tabs.get(id);
+        
+        // Sauvegarder dans la pile de réouverture
+        const workspaces = loadData(workspacesPath, defaultWorkspaces);
+        const privateWorkspaceIds = new Set(workspaces.filter(w => w.isPrivate).map(w => w.id));
+        
+        if (!tab.isShadow && !privateWorkspaceIds.has(tab.workspace)) {
+            closedTabsStack.push({ url: tab.url, title: tab.title, workspace: tab.workspace });
+            if (closedTabsStack.length > 1000) {
+                closedTabsStack.shift();
+            }
+        }
+        
+        tabs.delete(id);
+    }
     if (activeTabId === id) activeTabId = null;
     win.webContents.send('tab-closed', id);
+    saveSession();
+});
+
+ipcMain.on('update-tab-state', (e, { id, url, title }) => {
+    if (tabs.has(id)) {
+        const tab = tabs.get(id);
+        if (url !== undefined) tab.url = url;
+        if (title !== undefined) tab.title = title;
+        tabs.set(id, tab);
+        saveSession();
+    }
+});
+
+ipcMain.handle('restore-session', (e) => {
+    if (tabs.size > 0) {
+        // Restaurer le workspace courant en envoyant l'événement de changement
+        const workspaces = loadData(workspacesPath, defaultWorkspaces);
+        const ws = workspaces.find(w => w.id === currentWorkspace) || workspaces[0];
+        const wsTabs = Array.from(tabs.values()).filter(t => t.workspace === currentWorkspace);
+        
+        if (win && !win.isDestroyed()) {
+            win.webContents.send('workspace-switched', {
+                profile: currentWorkspace,
+                tabs: wsTabs,
+                isPrivate: ws.isPrivate
+            });
+            // Activer l'onglet actif si possible
+            if (activeTabId) {
+                setTimeout(() => {
+                    if (win && !win.isDestroyed()) win.webContents.send('tab-switched', activeTabId);
+                }, 100);
+            }
+        }
+        return { success: true };
+    }
+    return { success: false };
+});
+
+ipcMain.on('reopen-closed-tab', () => {
+    if (closedTabsStack.length > 0) {
+        const lastTab = closedTabsStack.pop();
+        const newTab = createNewTabInWorkspace(lastTab.url, false, lastTab.workspace);
+        newTab.title = lastTab.title;
+        tabs.set(newTab.id, newTab);
+        activeTabId = newTab.id;
+        
+        // Mettre à jour dans le workspace s'il correspond
+        if (newTab.workspace === currentWorkspace) {
+            if (win && !win.isDestroyed()) {
+                win.webContents.send('tab-switched', newTab.id);
+            }
+        }
+        saveSession();
+    }
 });
 
 ipcMain.on('quit-app', () => {
@@ -657,6 +801,48 @@ function createWindow() {
         webPreferences.spellcheck = true;
     });
     console.log('[DOMUS] Correcteur orthographique activé : fr + en-US');
+
+    // --- GESTION DES PERMISSIONS (Caméra, Micro, Notifications, Géolocalisation) ---
+    session.defaultSession.setPermissionRequestHandler((webContents, permission, callback, details) => {
+        const allowedPermissions = ['media', 'geolocation', 'notifications', 'midiSysex'];
+        if (!allowedPermissions.includes(permission)) {
+            return callback(false);
+        }
+
+        const requestingUrl = details.requestingUrl || 'un site inconnu';
+        let host = requestingUrl;
+        try { host = new URL(requestingUrl).hostname; } catch (e) {}
+
+        const permissionNames = {
+            'media': 'Accéder à votre caméra et/ou votre microphone',
+            'geolocation': 'Accéder à votre position géographique',
+            'notifications': 'Vous envoyer des notifications',
+            'midiSysex': 'Accéder à vos périphériques MIDI'
+        };
+
+        const permissionName = permissionNames[permission] || permission;
+
+        const { dialog } = require('electron');
+        dialog.showMessageBox(win, {
+            type: 'question',
+            buttons: ['Autoriser', 'Bloquer'],
+            defaultId: 0,
+            title: 'Demande d\'autorisation - Domus',
+            message: `Le site ${host} souhaite effectuer l'action suivante :\n\n👉 ${permissionName}\n\nSouhaitez-vous autoriser cette demande ?`,
+            cancelId: 1
+        }).then(({ response }) => {
+            const allowed = response === 0;
+            console.log(`[DOMUS SEC] Permission ${permission} pour ${host} : ${allowed ? 'AUTORISÉE' : 'REFUSÉE'}`);
+            callback(allowed);
+        }).catch(err => {
+            console.error('[DOMUS] Erreur de boîte de dialogue permission:', err);
+            callback(false);
+        });
+    });
+
+    session.defaultSession.setPermissionCheckHandler((webContents, permission, requestingOrigin, details) => {
+        return true;
+    });
 
     // --- INITIALISATION DES EXTENSIONS ---
     loadAllExtensions();
@@ -850,6 +1036,8 @@ function createWindow() {
 
     // Nouvel onglet
     globalShortcut.register('CommandOrControl+T', () => sendToRenderer('shortcut-new-tab'));
+    // Réouvrir l'onglet fermé
+    globalShortcut.register('CommandOrControl+Shift+T', () => sendToRenderer('shortcut-reopen-closed-tab'));
     // Fermer l'onglet actif
     globalShortcut.register('CommandOrControl+W', () => sendToRenderer('shortcut-close-tab'));
     // Onglet suivant / précédent
@@ -1278,7 +1466,7 @@ const configuredSessions = new Set();
 
 app.on('web-contents-created', (event, contents) => {
     contents.setWindowOpenHandler(({ url }) => {
-        win.webContents.send('tab-created', { id: `tab-${tabCounter++}`, url, active: true });
+        createNewTabInWorkspace(url);
         return { action: 'deny' };
     });
 
@@ -1290,7 +1478,7 @@ app.on('web-contents-created', (event, contents) => {
             if (params.linkURL && params.linkURL.trim() !== '') {
                 menu.append(new MenuItem({
                     label: "Ouvrir le lien dans un nouvel onglet",
-                    click: () => win.webContents.send('tab-created', { id: `tab-${tabCounter++}`, url: params.linkURL, active: true })
+                    click: () => createNewTabInWorkspace(params.linkURL)
                 }));
                 menu.append(new MenuItem({
                     label: "Copier l'adresse du lien",
@@ -1302,7 +1490,7 @@ app.on('web-contents-created', (event, contents) => {
             if (params.mediaType === 'image' && params.srcURL) {
                 menu.append(new MenuItem({
                     label: "Ouvrir l'image dans un nouvel onglet",
-                    click: () => win.webContents.send('tab-created', { id: `tab-${tabCounter++}`, url: params.srcURL, active: true })
+                    click: () => createNewTabInWorkspace(params.srcURL)
                 }));
                 menu.append(new MenuItem({
                     label: "Copier l'adresse de l'image",
@@ -1317,7 +1505,7 @@ app.on('web-contents-created', (event, contents) => {
                     label: `Rechercher "${params.selectionText.length > 25 ? params.selectionText.substring(0, 25) + '...' : params.selectionText}" sur Google`,
                     click: () => {
                         const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(params.selectionText)}`;
-                        win.webContents.send('tab-created', { id: `tab-${tabCounter++}`, url: searchUrl, active: true });
+                        createNewTabInWorkspace(searchUrl);
                     }
                 }));
                 menu.append(new MenuItem({ type: 'separator' }));

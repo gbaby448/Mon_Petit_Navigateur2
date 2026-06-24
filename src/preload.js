@@ -52,6 +52,9 @@ if (isSystemPage) {
         showTabMenu: (id) => ipcRenderer.send('show-tab-menu', id),
         toggleSplitScreen: (id) => ipcRenderer.send('toggle-split-screen', id),
         onSplitStateChanged: (callback) => ipcRenderer.on('split-state-changed', (event, id) => callback(id)),
+        restoreSession: () => ipcRenderer.invoke('restore-session'),
+        updateTabState: (id, data) => ipcRenderer.send('update-tab-state', { id, ...data }),
+        reopenClosedTab: () => ipcRenderer.send('reopen-closed-tab'),
 
         // --- UI & PANNEAUX LATÉRAUX ---
         resizeActiveTab: (options) => ipcRenderer.send('resize-active-tab', options),
@@ -144,7 +147,8 @@ if (isSystemPage) {
             const shortcuts = [
                 'new-tab','close-tab','next-tab','prev-tab','focus-urlbar',
                 'reload','hard-reload','find','history','downloads',
-                'devtools','back','forward','zoom-in','zoom-out','zoom-reset','stop'
+                'devtools','back','forward','zoom-in','zoom-out','zoom-reset','stop',
+                'reopen-closed-tab'
             ];
             shortcuts.forEach(action => {
                 ipcRenderer.on(`shortcut-${action}`, () => callback(action));

@@ -373,19 +373,25 @@ document.addEventListener('DOMContentLoaded', () => {
      */
     function createTabElement(data) {
         try {
-            if (welcomeScreen) {
+            const isForCurrentWorkspace = !data.workspace || data.workspace === currentProfile;
+
+            if (isForCurrentWorkspace && welcomeScreen) {
                 welcomeScreen.style.display = 'none';
                 welcomeScreen.style.height = '0';
                 welcomeScreen.style.opacity = '0';
                 welcomeScreen.style.pointerEvents = 'none';
             }
-            if (data.active) {
+            if (isForCurrentWorkspace && data.active) {
                 document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
                 document.querySelectorAll('webview').forEach(wv => wv.classList.remove('active'));
             }
 
             const tabEl = document.createElement('div');
-            tabEl.className = 'tab' + (data.active ? ' active' : '') + (data.isShadow ? ' shadow-tab' : '');
+            tabEl.className = 'tab' + (isForCurrentWorkspace && data.active ? ' active' : '') + (data.isShadow ? ' shadow-tab' : '');
+            if (!isForCurrentWorkspace) {
+                tabEl.classList.add('ws-hidden');
+                tabEl.style.display = 'none';
+            }
             tabEl.id = `ui-${data.id}`;
             const shadowBadge = data.isShadow ? '<span class="shadow-ghost-icon" title="Onglet Shadow Sécurisé" style="color:#d946ef; margin-right:4px;">👻</span>' : '';
             tabEl.innerHTML = `${shadowBadge}<span class="tab-title">${data.title || (data.isShadow ? 'Paiement Shadow' : 'Nouvel Onglet')}</span><span class="tab-audio-icon hidden" style="margin-right: 4px; font-size: 11px;">🔊</span><button class="tab-close">×</button>`;
@@ -438,7 +444,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const wv = document.createElement('webview');
             wv.id = `view-${data.id}`;
-            wv.className = data.active ? 'active' : '';
+            wv.className = (isForCurrentWorkspace && data.active) ? 'active' : '';
             
             wv.setAttribute('preload', './preload.js');
             wv.setAttribute('webpreferences', 'contextIsolation=yes');
@@ -481,8 +487,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Sync de l'URL bar quand on navigue
             wv.addEventListener('did-stop-loading', () => {
+                const currentUrl = wv.getURL();
                 if (wv.classList.contains('active')) {
-                    const currentUrl = wv.getURL();
                     if (currentUrl.includes('file://')) {
                         // Re-transformer le chemin de fichier en domus:// pour l'UI
                         const pageName = currentUrl.split('/').pop().replace('.html', '');
@@ -494,6 +500,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 // Mettre à jour les piles d'onglets suite au changement d'URL potentiel
                 handleTabDomainChange(data.id);
+                // Mettre à jour l'état de la session
+                const currentTitle = wv.getTitle() || "Sans titre";
+                window.domusAPI.updateTabState(data.id, { url: currentUrl, title: currentTitle });
             });
 
             // Sync du nom de l'onglet avec le titre de la page web
@@ -506,6 +515,28 @@ document.addEventListener('DOMContentLoaded', () => {
                     const currentUrl = wv.getURL();
                     if (currentUrl && !currentUrl.includes('domus://') && !currentUrl.includes('file://') && !data.isShadow) {
                         window.domusAPI.saveToHistory({ title: e.title, url: currentUrl });
+                    }
+                    // Mettre à jour l'état de la session
+                    window.domusAPI.updateTabState(data.id, { title: e.title });
+                }
+            });
+
+            // Gérer les pannes de chargement réseau
+            wv.addEventListener('did-fail-load', (e) => {
+                if (e.isMainFrame && e.errorCode !== -3) {
+                    const originalUrl = e.validatedURL || wv.getURL();
+                    const errorDescription = e.errorDescription || "Unknown network error";
+                    const errorCode = e.errorCode || 0;
+                    wv.src = `./error.html?url=${encodeURIComponent(originalUrl)}&error=${encodeURIComponent(errorDescription)}&code=${errorCode}`;
+                }
+            });
+
+            // Gérer la recherche dans la page
+            wv.addEventListener('found-in-page', (e) => {
+                if (wv.id === `view-${activeTabId}`) {
+                    const result = e.result;
+                    if (findResults) {
+                        findResults.textContent = `${result.activeMatchOrdinal}/${result.matches}`;
                     }
                 }
             });
@@ -617,6 +648,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.domusAPI.onTabSwitched((id) => {
         hideSuggestions();
+        hideFindInPage();
         
         // Si le mode cinéma est actif, on nettoie l'ancien onglet avant de switcher
         if (isCinemaMode && activeTabId && activeTabId !== id) {
@@ -699,6 +731,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     window.domusAPI.onTabClosed((id) => {
+        hideFindInPage();
         const tabEl = document.getElementById(`ui-${id}`);
         if (tabEl) tabEl.remove();
         
@@ -920,7 +953,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 // TPM présent : déverrouillage transparent sans mot de passe maître
                 const res = await window.domusAPI.initVault('');
                 if (res.success) {
-                    window.domusAPI.newTab(homeUrl);
+                    const restored = await window.domusAPI.restoreSession();
+                    if (!restored || !restored.success) {
+                        window.domusAPI.newTab(homeUrl);
+                    }
                     showDomusToast("Coffre-fort déverrouillé via TPM matériel ! 🛡️");
                 } else {
                     // Si échec TPM pour une raison quelconque, on affiche la modale
@@ -2984,7 +3020,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 masterPwdInput.value = '';
                 
                 const homeUrl = currentSettings.homePage || 'domus://newtab';
-                window.domusAPI.newTab(homeUrl);
+                const restored = await window.domusAPI.restoreSession();
+                if (!restored || !restored.success) {
+                    window.domusAPI.newTab(homeUrl);
+                }
                 
                 showDomusToast("Coffre-fort déverrouillé avec succès ! 🛡️");
             } else {
@@ -3157,14 +3196,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 case 'devtools':
                     wv = getActiveWV(); if (wv) wv.openDevTools(); break;
                 case 'find':
-                    wv = getActiveWV(); if (!wv) break;
-                    var term = prompt('Rechercher dans la page :');
-                    if (term && term.trim()) {
-                        wv.findInPage(term.trim());
-                        wv.addEventListener('found-in-page', function(ev) {
-                            showDomusToast(ev.result.matches === 0 ? 'Aucun resultat.' : ev.result.activeMatchOrdinal + '/' + ev.result.matches + ' resultat(s)');
-                        }, { once: true });
-                    } else if (term !== null) { wv.stopFindInPage('clearSelection'); }
+                    showFindInPage();
+                    break;
+                case 'reopen-closed-tab':
+                    window.domusAPI.reopenClosedTab();
                     break;
                 case 'history':
                     if (btnHistory) btnHistory.click(); break;
@@ -3180,7 +3215,93 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // --- DIALOGUE DE RECHERCHE DANS LA PAGE (CTRL+F OVERLAY) ---
+    const findInPageBox = document.getElementById('find-in-page-box');
+    const findInput = document.getElementById('find-input');
+    const findResults = document.getElementById('find-results');
+    const findPrev = document.getElementById('find-prev');
+    const findNext = document.getElementById('find-next');
+    const findClose = document.getElementById('find-close');
 
+    let currentSearchQuery = "";
+
+    function showFindInPage() {
+        if (!findInPageBox) return;
+        findInPageBox.classList.remove('hidden');
+        if (findInput) {
+            findInput.focus();
+            findInput.select();
+            if (findInput.value.trim()) {
+                performSearch(findInput.value.trim(), true);
+            }
+        }
+    }
+
+    function hideFindInPage() {
+        if (!findInPageBox) return;
+        findInPageBox.classList.add('hidden');
+        const activeWv = activeTabId ? document.getElementById(`view-${activeTabId}`) : null;
+        if (activeWv) {
+            activeWv.stopFindInPage('clearSelection');
+        }
+        if (findResults) findResults.textContent = "0/0";
+    }
+
+    function performSearch(query, forward = true, findNextMatch = false) {
+        const activeWv = activeTabId ? document.getElementById(`view-${activeTabId}`) : null;
+        if (!activeWv || !query) return;
+        activeWv.findInPage(query, { forward, findNext: findNextMatch });
+        currentSearchQuery = query;
+    }
+
+    if (findInput) {
+        findInput.addEventListener('input', () => {
+            const query = findInput.value.trim();
+            if (query) {
+                performSearch(query, true, false);
+            } else {
+                const activeWv = activeTabId ? document.getElementById(`view-${activeTabId}`) : null;
+                if (activeWv) activeWv.stopFindInPage('clearSelection');
+                if (findResults) findResults.textContent = "0/0";
+                currentSearchQuery = "";
+            }
+        });
+
+        findInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const query = findInput.value.trim();
+                if (query) {
+                    performSearch(query, !e.shiftKey, true);
+                }
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                hideFindInPage();
+                const activeWv = activeTabId ? document.getElementById(`view-${activeTabId}`) : null;
+                if (activeWv) activeWv.focus();
+            }
+        });
+    }
+
+    if (findPrev) {
+        findPrev.onclick = () => {
+            const query = findInput ? findInput.value.trim() : "";
+            if (query) performSearch(query, false, true);
+        };
+    }
+
+    if (findNext) {
+        findNext.onclick = () => {
+            const query = findInput ? findInput.value.trim() : "";
+            if (query) performSearch(query, true, true);
+        };
+    }
+
+    if (findClose) {
+        findClose.onclick = () => {
+            hideFindInPage();
+        };
+    }
 
     } catch (e) {
         console.error("FATAL RENDERER ERROR:", e);
