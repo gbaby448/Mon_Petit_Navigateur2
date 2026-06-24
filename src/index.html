@@ -66,6 +66,25 @@
                 <div id="shield-container">
                     <span id="shield-icon">🛡️</span>
                     <span id="blocked-count">0</span>
+                    <div id="shield-flyout" class="hidden">
+                        <div class="modal-header" style="border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 6px; margin-bottom: 8px;">
+                            <div class="flyout-title" style="margin: 0; padding: 0; font-size: 11px; font-weight: bold;">Eco-Shield Protection</div>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            <div id="shield-domain" style="font-size: 12px; color: var(--accent-color); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Loading...</div>
+                            <div style="display: flex; justify-content: space-between; font-size: 11px;">
+                                <span style="opacity: 0.6;">Statut :</span>
+                                <span id="shield-status" style="font-weight: bold; color: var(--accent-color);">Actif</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 11px;">
+                                <span style="opacity: 0.6;">Éléments bloqués (Session) :</span>
+                                <span id="shield-blocked-count" style="font-weight: bold;">0</span>
+                            </div>
+                            <button id="btn-toggle-shield" style="margin-top: 5px; width: 100%; padding: 6px; font-size: 11px; font-weight: bold; background: rgba(0,255,136,0.15); border: 1px solid var(--accent-color); color: var(--accent-color); border-radius: 6px; cursor: pointer; transition: 0.2s;">
+                                Désactiver sur ce site
+                            </button>
+                        </div>
+                    </div>
                 </div>
                 <div class="url-bar-container">
                     <span id="security-indicator" title="Statut de Sécurité">⚙️</span>

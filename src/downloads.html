@@ -465,6 +465,17 @@
                 itemEl.className = `dl-item state-${stateClass}`;
                 itemEl.title = "Double-cliquez pour ouvrir ce fichier";
 
+                let actionsHtml = '';
+                if (item.state === 'completed' && item.savePath) {
+                    const escapedPath = item.savePath.replace(/\\/g, '\\\\');
+                    actionsHtml = `
+                        <div class="dl-actions" style="margin-top: 8px; display: flex; gap: 15px;">
+                            <span class="dl-action-link" style="color: var(--accent); cursor: pointer; font-size: 0.85rem; font-weight: 600; text-decoration: underline;" onclick="event.stopPropagation(); window.domusAPI.openFile('${escapedPath}')">🚀 Ouvrir</span>
+                            <span class="dl-action-link" style="color: var(--info); cursor: pointer; font-size: 0.85rem; font-weight: 600; text-decoration: underline;" onclick="event.stopPropagation(); window.domusAPI.showItemInFolder('${escapedPath}')">📁 Afficher dans le dossier</span>
+                        </div>
+                    `;
+                }
+
                 itemEl.innerHTML = `
                     <div class="dl-icon" style="background: ${fileInfo.color}15; color: ${fileInfo.color}; border-color: ${fileInfo.color}40;">
                         ${fileInfo.icon}
@@ -481,6 +492,7 @@
                             <div>${formatBytes(item.receivedBytes)} / ${formatBytes(item.totalBytes)}</div>
                             <div>${statusText}</div>
                         </div>
+                        ${actionsHtml}
                     </div>
                 `;
 

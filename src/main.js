@@ -889,6 +889,17 @@ function createWindow() {
             return callback({ cancel: false });
         }
 
+        let domain = '';
+        try {
+            domain = new URL(details.url).hostname;
+        } catch(e) {}
+
+        const settings = loadData(settingsPath, {});
+        const disabledShieldDomains = settings.disabledShieldDomains || [];
+        if (domain && disabledShieldDomains.includes(domain)) {
+            return callback({ cancel: false });
+        }
+
         const urlLower = details.url.toLowerCase();
         const shouldBlock = blockList.some(b => urlLower.includes(b));
 
@@ -1481,6 +1492,20 @@ ipcMain.handle('open-file', (e, filePath) => {
         return { success: true };
     }
     return { success: false };
+});
+
+ipcMain.handle('show-item-in-folder', (e, filePath) => {
+    if (fs.existsSync(filePath)) {
+        shell.showItemInFolder(filePath);
+        return { success: true };
+    }
+    return { success: false };
+});
+
+ipcMain.on('webview-gesture', (e, gesture) => {
+    if (win && !win.isDestroyed()) {
+        win.webContents.send('execute-gesture', gesture);
+    }
 });
 
 // Variable globale pour stocker les sessions configurées

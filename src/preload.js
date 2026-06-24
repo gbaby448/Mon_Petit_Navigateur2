@@ -111,6 +111,7 @@ if (isSystemPage) {
         clearDownloads: () => ipcRenderer.invoke('clear-downloads'),
         openDownloadFolder: () => ipcRenderer.invoke('open-download-folder'),
         openFile: (path) => ipcRenderer.invoke('open-file', path),
+        showItemInFolder: (path) => ipcRenderer.invoke('show-item-in-folder', path),
         onDownloadUpdate: (callback) => ipcRenderer.on('download-update', (event, data) => callback(data)),
         onStartFade: (callback) => ipcRenderer.on('start-fade', () => callback()),
         onEndFade: (callback) => ipcRenderer.on('end-fade', () => callback()),
@@ -124,6 +125,7 @@ if (isSystemPage) {
         getSettings: () => ipcRenderer.invoke('get-settings'),
         resetBrowser: () => ipcRenderer.invoke('reset-browser'),
         onSettingsChanged: (callback) => ipcRenderer.on('settings-changed', (event, data) => callback(data)),
+        onExecuteGesture: (callback) => ipcRenderer.on('execute-gesture', (event, gesture) => callback(gesture)),
 
         // --- GESTION DES EXTENSIONS ---
         getExtensions: () => ipcRenderer.invoke('list-extensions'),
@@ -139,7 +141,7 @@ if (isSystemPage) {
         windowClose: () => ipcRenderer.send('window-close'),
 
         // --- CRÉATION D'ONGLET (depuis menu contextuel) ---
-        createTab: ({ url }) => ipcRenderer.send('new-tab', { url, isShadow: false }),
+        createTab: ({ url, isShadow }) => ipcRenderer.send('new-tab', { url, isShadow: !!isShadow }),
 
         // --- RACCOURCIS CLAVIER ---
         // Écoute tous les canaux shortcut-* et appelle le callback avec l'action sans le préfixe
@@ -165,6 +167,60 @@ if (isSystemPage) {
         runAutofillEngine();
         runAudioEnhancer();
     });
+
+    // --- DÉTECTEUR DE GESTES SOURIS (MOUSE GESTURES) ---
+    let rightMouseDown = false;
+    let startX = 0;
+    let startY = 0;
+    let gesturePath = [];
+
+    window.addEventListener('mousedown', (e) => {
+        if (e.button === 2) {
+            rightMouseDown = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            gesturePath = [];
+        }
+    });
+
+    window.addEventListener('mousemove', (e) => {
+        if (!rightMouseDown) return;
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        const distance = Math.sqrt(dx*dx + dy*dy);
+        if (distance > 35) {
+            let dir = '';
+            if (Math.abs(dx) > Math.abs(dy)) {
+                dir = dx > 0 ? 'R' : 'L';
+            } else {
+                dir = dy > 0 ? 'D' : 'U';
+            }
+            if (gesturePath.length === 0 || gesturePath[gesturePath.length - 1] !== dir) {
+                gesturePath.push(dir);
+            }
+            startX = e.clientX;
+            startY = e.clientY;
+        }
+    });
+
+    window.addEventListener('mouseup', (e) => {
+        if (e.button === 2 && rightMouseDown) {
+            rightMouseDown = false;
+            if (gesturePath.length > 0) {
+                const gesture = gesturePath.join('');
+                ipcRenderer.send('webview-gesture', gesture);
+                setTimeout(() => { gesturePath = []; }, 50);
+            }
+        }
+    });
+
+    window.addEventListener('contextmenu', (e) => {
+        if (gesturePath.length > 0) {
+            e.preventDefault();
+            e.stopPropagation();
+            gesturePath = [];
+        }
+    }, true);
 }
 
 function runAutofillEngine() {

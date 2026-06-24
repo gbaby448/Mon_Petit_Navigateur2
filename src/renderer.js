@@ -148,16 +148,125 @@ document.addEventListener('DOMContentLoaded', () => {
             list.innerHTML = '<span style="opacity: 0.4; font-size: 11px; margin-left: 10px;">Aucun favori</span>';
             return;
         }
-        list.innerHTML = favorites.map(f => {
+        list.innerHTML = favorites.map((f, index) => {
             const title = f.title || f.url;
             return `
-                <div class="bookmark-bar-item" title="${f.url}" onclick="window.domusAPI.navigate('${f.url}')">
+                <div class="bookmark-bar-item" title="${f.url}" onclick="window.domusAPI.navigate('${f.url}')" oncontextmenu="window.showBookmarkContextMenu(event, ${index})">
                     <span class="fav-icon">⭐</span>
                     <span>${title}</span>
                 </div>
             `;
         }).join('');
     }
+
+    function showBookmarkContextMenu(e, favIndex) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        let menu = document.getElementById('domus-bookmark-context-menu');
+        if (menu) menu.remove();
+
+        menu = document.createElement('div');
+        menu.id = 'domus-bookmark-context-menu';
+        menu.style.cssText = `
+            position: fixed;
+            top: ${e.clientY}px;
+            left: ${e.clientX}px;
+            background: rgba(13, 13, 16, 0.95);
+            border: 1px solid var(--accent-color, #00ff88);
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            backdrop-filter: blur(15px);
+            z-index: 9999999;
+            padding: 6px 0;
+            min-width: 180px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        `;
+
+        const favorites = currentSettings.favorites || [];
+        const fav = favorites[favIndex];
+        if (!fav) return;
+
+        const options = [
+            {
+                text: "🌐 Ouvrir dans un nouvel onglet",
+                action: () => {
+                    window.domusAPI.createTab({ url: fav.url });
+                }
+            },
+            {
+                text: "👻 Ouvrir en onglet Shadow",
+                action: () => {
+                    window.domusAPI.createTab({ url: fav.url, isShadow: true });
+                }
+            },
+            {
+                text: "✏️ Modifier le favori",
+                action: async () => {
+                    const newTitle = prompt("Nom du favori :", fav.title || "");
+                    if (newTitle === null) return;
+                    const newUrl = prompt("Adresse URL :", fav.url || "");
+                    if (!newUrl) return;
+                    
+                    favorites[favIndex] = { title: newTitle, url: newUrl };
+                    currentSettings.favorites = favorites;
+                    await window.domusAPI.saveSettings(currentSettings);
+                    renderBookmarksBar(favorites);
+                    if (!sidePanels.favorites.classList.contains('hidden')) loadFavorites();
+                    showDomusToast("⭐ Favori mis à jour.");
+                }
+            },
+            {
+                text: "🗑️ Supprimer",
+                action: async () => {
+                    favorites.splice(favIndex, 1);
+                    currentSettings.favorites = favorites;
+                    await window.domusAPI.saveSettings(currentSettings);
+                    renderBookmarksBar(favorites);
+                    if (!sidePanels.favorites.classList.contains('hidden')) loadFavorites();
+                    const wv = getActiveWV();
+                    if (wv) updateBookmarkStar(wv.getURL());
+                    showDomusToast("⭐ Favori supprimé.");
+                }
+            }
+        ];
+
+        options.forEach(opt => {
+            const item = document.createElement('div');
+            item.textContent = opt.text;
+            item.style.cssText = `
+                padding: 10px 16px;
+                font-size: 13px;
+                color: #e0e0e6;
+                cursor: pointer;
+                transition: background 0.2s, color 0.2s;
+            `;
+            
+            item.onmouseenter = () => {
+                item.style.background = 'rgba(0, 255, 136, 0.1)';
+                item.style.color = 'var(--accent-color, #00ff88)';
+            };
+            item.onmouseleave = () => {
+                item.style.background = 'transparent';
+                item.style.color = '#e0e0e6';
+            };
+            
+            item.onclick = () => {
+                opt.action();
+                menu.remove();
+            };
+            menu.appendChild(item);
+        });
+
+        document.body.appendChild(menu);
+
+        const closeMenu = () => {
+            menu.remove();
+            document.removeEventListener('click', closeMenu);
+        };
+        setTimeout(() => document.addEventListener('click', closeMenu), 100);
+    }
+    window.showBookmarkContextMenu = showBookmarkContextMenu;
 
     // =========================================================================
     // 🔔 SYSTÈME DE NOTIFICATION (TOAST)
@@ -262,17 +371,36 @@ document.addEventListener('DOMContentLoaded', () => {
         suggestions.slice(0, 8).forEach((sug, index) => {
             const div = document.createElement('div');
             div.className = 'suggestion-item';
-            div.textContent = sug;
             div.dataset.index = index;
 
+            let displayText = '';
+            let icon = '🔍';
+            if (sug.type === 'favorite') {
+                icon = '⭐';
+                displayText = `${sug.title || sug.url} - ${sug.url}`;
+                div.dataset.url = sug.url;
+            } else if (sug.type === 'history') {
+                icon = '🕰️';
+                displayText = `${sug.title || sug.url} - ${sug.url}`;
+                div.dataset.url = sug.url;
+            } else {
+                displayText = sug.text;
+                div.dataset.text = sug.text;
+            }
+
+            div.innerHTML = `<span style="margin-right: 8px; opacity: 0.6;">${icon}</span><span style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${displayText}</span>`;
+
             div.style.cssText = `
-                padding: 12px 18px !important;
+                display: flex !important;
+                align-items: center !important;
+                padding: 10px 16px !important;
                 cursor: pointer !important;
                 color: #e0e0e6 !important;
                 border-bottom: 1px solid rgba(255,255,255,0.05) !important;
-                font-size: 14px !important;
+                font-size: 13px !important;
                 text-align: left !important;
                 background: transparent !important;
+                overflow: hidden !important;
             `;
 
             div.onmouseenter = () => {
@@ -282,9 +410,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
             div.onmousedown = (e) => {
                 e.preventDefault();
-                urlInput.value = sug;
+                if (sug.type === 'favorite' || sug.type === 'history') {
+                    const activeWv = document.querySelector('webview.active');
+                    if (activeWv) activeWv.src = sug.url;
+                } else {
+                    urlInput.value = sug.text;
+                    const activeWv = document.querySelector('webview.active');
+                    if (activeWv) {
+                        let engineUrl = 'https://www.google.com/search?q=';
+                        if (currentSettings.searchEngine === 'duckduckgo') engineUrl = 'https://duckduckgo.com/?q=';
+                        if (currentSettings.searchEngine === 'bing') engineUrl = 'https://www.bing.com/search?q=';
+                        activeWv.src = `${engineUrl}${encodeURIComponent(sug.text)}`;
+                    }
+                }
                 hideSuggestions();
-                urlInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+                urlInput.blur();
             };
             domusSuggestBox.appendChild(div);
         });
@@ -1614,7 +1754,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             } else if (e.key === 'Enter' && selectedSuggestionIndex >= 0) {
                 e.preventDefault();
-                urlInput.value = items[selectedSuggestionIndex].textContent;
+                const item = items[selectedSuggestionIndex];
+                if (item.dataset.url) {
+                    urlInput.value = item.dataset.url;
+                } else if (item.dataset.text) {
+                    urlInput.value = item.dataset.text;
+                } else {
+                    urlInput.value = item.textContent;
+                }
                 hideSuggestions();
                 urlInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
                 return;
@@ -1643,12 +1790,42 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     urlInput.addEventListener('input', debounce(async (e) => {
-        const query = e.target.value.trim();
-        if (query.length > 2) {
+        const query = e.target.value.trim().toLowerCase();
+        if (query.length > 1) {
             try {
-                const suggestions = await window.domusAPI.fetchSuggestions(query);
-                if (document.activeElement === urlInput && suggestions && suggestions.length > 0) {
-                    showSuggestions(suggestions);
+                // 1. Local favorites matching
+                const favorites = currentSettings.favorites || [];
+                const favMatches = favorites.filter(f => 
+                    (f.title && f.title.toLowerCase().includes(query)) || 
+                    (f.url && f.url.toLowerCase().includes(query))
+                ).map(f => ({ type: 'favorite', title: f.title, url: f.url }));
+
+                // 2. Local history matching
+                const history = await window.domusAPI.getHistory() || [];
+                const histMatches = [];
+                const seenUrls = new Set();
+                for (const h of history) {
+                    if (histMatches.length >= 5) break;
+                    if (seenUrls.has(h.url)) continue;
+                    if ((h.title && h.title.toLowerCase().includes(query)) || 
+                        (h.url && h.url.toLowerCase().includes(query))) {
+                        histMatches.push({ type: 'history', title: h.title, url: h.url });
+                        seenUrls.add(h.url);
+                    }
+                }
+
+                // 3. Web suggestions matching
+                let webMatches = [];
+                try {
+                    const rawWeb = await window.domusAPI.fetchSuggestions(query) || [];
+                    webMatches = rawWeb.map(w => ({ type: 'web', text: w }));
+                } catch (err) {}
+
+                // Merge
+                const merged = [...favMatches.slice(0, 3), ...histMatches.slice(0, 3), ...webMatches.slice(0, 5)];
+
+                if (document.activeElement === urlInput && merged.length > 0) {
+                    showSuggestions(merged);
                 } else {
                     hideSuggestions();
                 }
@@ -2179,6 +2356,95 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
+        options.push({
+            text: "🔄 Recharger cet onglet",
+            action: () => {
+                const wv = document.getElementById('view-' + tabId);
+                if (wv) wv.reload();
+            }
+        });
+
+        options.push({
+            text: "👥 Dupliquer cet onglet",
+            action: () => {
+                const wv = document.getElementById('view-' + tabId);
+                if (wv) {
+                    try {
+                        window.domusAPI.createTab({ url: wv.getURL() });
+                    } catch(e) {}
+                }
+            }
+        });
+
+        options.push({
+            text: "Ghost/Incognito",
+            isSubMenu: true,
+            action: (itemDiv) => {
+                let subMenu = document.getElementById('domus-ws-submenu');
+                if (subMenu) subMenu.remove();
+                
+                subMenu = document.createElement('div');
+                subMenu.id = 'domus-ws-submenu';
+                const rect = itemDiv.getBoundingClientRect();
+                subMenu.style.cssText = `
+                    position: fixed; top: ${rect.top}px; left: ${rect.right + 2}px;
+                    background: rgba(13, 13, 16, 0.95); border: 1px solid var(--accent-color, #00ff88);
+                    border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+                    backdrop-filter: blur(15px); z-index: 10000000; padding: 6px 0; min-width: 150px;
+                `;
+                
+                const shadowItem = document.createElement('div');
+                shadowItem.textContent = "👻 Onglet Shadow (Privé)";
+                shadowItem.style.cssText = "padding: 10px 16px; font-size: 13px; color: #e0e0e6; cursor: pointer; transition: background 0.2s, color 0.2s;";
+                shadowItem.onmouseenter = () => { shadowItem.style.background = 'rgba(0, 255, 136, 0.1)'; shadowItem.style.color = 'var(--accent-color, #00ff88)'; };
+                shadowItem.onmouseleave = () => { shadowItem.style.background = 'transparent'; shadowItem.style.color = '#e0e0e6'; };
+                shadowItem.onclick = (ev) => {
+                    ev.stopPropagation();
+                    const wv = document.getElementById('view-' + tabId);
+                    if (wv) {
+                        try {
+                            window.domusAPI.createTab({ url: wv.getURL(), isShadow: true });
+                        } catch(e) {}
+                    }
+                    subMenu.remove();
+                    menu.remove();
+                };
+                subMenu.appendChild(shadowItem);
+                document.body.appendChild(subMenu);
+            }
+        });
+
+        options.push({
+            text: "🔒 Fermer les autres onglets",
+            action: () => {
+                const allTabs = Array.from(document.querySelectorAll('.tab'));
+                allTabs.forEach(t => {
+                    const id = t.id.replace('ui-', '');
+                    if (id !== String(tabId)) {
+                        window.domusAPI.closeTab(id);
+                    }
+                });
+            }
+        });
+
+        options.push({
+            text: "➡️ Fermer les onglets à droite",
+            action: () => {
+                const allTabs = Array.from(document.querySelectorAll('.tab'));
+                let found = false;
+                allTabs.forEach(t => {
+                    const id = t.id.replace('ui-', '');
+                    if (id === String(tabId)) {
+                        found = true;
+                        return;
+                    }
+                    if (found) {
+                        window.domusAPI.closeTab(id);
+                    }
+                });
+            }
+        });
+
         // Option: Déplacer vers l'espace...
         options.push({
             text: "Déplacer vers l'espace...",
@@ -2456,7 +2722,91 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (btnHome) btnHome.addEventListener('click', () => togglePanel(sidePanels.workspace));
     if (btnAudio) btnAudio.addEventListener('click', () => togglePanel(sidePanels.audio));
-    if (shieldContainer) shieldContainer.addEventListener('click', () => togglePanel(sidePanels.dataMap));
+    const shieldFlyout = document.getElementById('shield-flyout');
+    const shieldDomain = document.getElementById('shield-domain');
+    const shieldStatus = document.getElementById('shield-status');
+    const shieldBlockedCount = document.getElementById('shield-blocked-count');
+    const btnToggleShield = document.getElementById('btn-toggle-shield');
+
+    if (shieldContainer && shieldFlyout) {
+        shieldContainer.addEventListener('click', (e) => {
+            if (e.target.closest('#shield-flyout')) return;
+
+            e.stopPropagation();
+            const isHidden = shieldFlyout.classList.contains('hidden');
+            const profileFlyout = document.getElementById('profile-flyout');
+            if (profileFlyout) profileFlyout.classList.add('hidden');
+
+            if (isHidden) {
+                const getActiveWV = function() { return activeTabId ? document.getElementById('view-' + activeTabId) : null; };
+                const wv = getActiveWV();
+                const currentUrl = wv ? wv.getURL() : '';
+                const domain = getDomainFromUrl(currentUrl) || 'Domaine inconnu';
+                shieldDomain.textContent = domain;
+
+                const disabledShieldDomains = currentSettings.disabledShieldDomains || [];
+                const isBlockedDisabled = disabledShieldDomains.includes(domain);
+
+                if (isBlockedDisabled) {
+                    shieldStatus.textContent = "Désactivé";
+                    shieldStatus.style.color = "#ff3b30";
+                    btnToggleShield.textContent = "Activer sur ce site";
+                    btnToggleShield.style.background = "rgba(0,255,136,0.15)";
+                    btnToggleShield.style.borderColor = "var(--accent-color)";
+                    btnToggleShield.style.color = "var(--accent-color)";
+                } else {
+                    shieldStatus.textContent = "Actif";
+                    shieldStatus.style.color = "var(--accent-color)";
+                    btnToggleShield.textContent = "Désactiver sur ce site";
+                    btnToggleShield.style.background = "rgba(255,59,48,0.15)";
+                    btnToggleShield.style.borderColor = "#ff3b30";
+                    btnToggleShield.style.color = "#ff3b30";
+                }
+
+                const blockedCounter = document.getElementById('blocked-count');
+                shieldBlockedCount.textContent = blockedCounter ? blockedCounter.textContent : '0';
+
+                shieldFlyout.classList.remove('hidden');
+            } else {
+                shieldFlyout.classList.add('hidden');
+            }
+        });
+    }
+
+    if (btnToggleShield) {
+        btnToggleShield.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const getActiveWV = function() { return activeTabId ? document.getElementById('view-' + activeTabId) : null; };
+            const wv = getActiveWV();
+            if (!wv) return;
+            const currentUrl = wv.getURL();
+            const domain = getDomainFromUrl(currentUrl);
+            if (!domain) return;
+
+            if (!currentSettings.disabledShieldDomains) {
+                currentSettings.disabledShieldDomains = [];
+            }
+
+            const idx = currentSettings.disabledShieldDomains.indexOf(domain);
+            if (idx >= 0) {
+                currentSettings.disabledShieldDomains.splice(idx, 1);
+                showDomusToast(`🛡️ Shield réactivé pour ${domain}`);
+            } else {
+                currentSettings.disabledShieldDomains.push(domain);
+                showDomusToast(`⚠️ Shield désactivé pour ${domain}`);
+            }
+
+            await window.domusAPI.saveSettings(currentSettings);
+            shieldFlyout.classList.add('hidden');
+            wv.reload();
+        });
+    }
+
+    document.addEventListener('click', (e) => {
+        if (shieldFlyout && !shieldFlyout.classList.contains('hidden') && !e.target.closest('#shield-container')) {
+            shieldFlyout.classList.add('hidden');
+        }
+    });
     if (btnPasswords) btnPasswords.addEventListener('click', () => {
         togglePanel(sidePanels.password);
         if (!sidePanels.password.classList.contains('hidden')) loadPasswords();
@@ -3345,6 +3695,32 @@ document.addEventListener('DOMContentLoaded', () => {
                     break;
                 case 'clear-data':
                     if (btnSettings) btnSettings.click(); showDomusToast('Allez dans Parametres pour effacer le cache.'); break;
+            }
+        });
+    }
+
+    if (window.domusAPI && window.domusAPI.onExecuteGesture) {
+        window.domusAPI.onExecuteGesture((gesture) => {
+            const getActiveWV = function() { return activeTabId ? document.getElementById('view-' + activeTabId) : null; };
+            const wv = getActiveWV();
+            if (!wv) return;
+
+            if (gesture === 'L') {
+                if (wv.canGoBack()) {
+                    wv.goBack();
+                    showDomusToast("⬅️ Retour");
+                }
+            } else if (gesture === 'R') {
+                if (wv.canGoForward()) {
+                    wv.goForward();
+                    showDomusToast("➡️ Suivant");
+                }
+            } else if (gesture === 'UD') {
+                wv.reload();
+                showDomusToast("🔄 Recharger");
+            } else if (gesture === 'DR') {
+                window.domusAPI.closeTab(activeTabId);
+                showDomusToast("✕ Onglet fermé");
             }
         });
     }
