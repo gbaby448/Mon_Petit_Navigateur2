@@ -9,7 +9,7 @@ const securityManager = require('./security');
 const DomusUpdater = require('./updater');
 
 let domusUpdater = null;
-const DOMUS_VERSION = '1.3.11';
+const DOMUS_VERSION = '1.3.12';
 
 // CONFIGURATION DE RENDU ULTRA-FLUIDE ET HYPER-ÉCONOME (GPU BASSE CONSOMMATION)
 app.commandLine.appendSwitch('force-low-power-gpu'); // Force l'utilisation du GPU économe (iGPU) pour économiser l'énergie et éviter le dGPU dédié
@@ -643,9 +643,20 @@ function createWindow() {
             contextIsolation: true,
             nodeIntegration: false,
             webviewTag: true,
-            devTools: true
+            devTools: true,
+            spellcheck: true  // Correcteur orthographique natif Chromium dans le renderer
         }
     });
+
+    // --- CORRECTEUR ORTHOGRAPHIQUE (FR + EN) ---
+    // Active la correction dans toutes les webviews (champs de texte des sites web)
+    session.defaultSession.setSpellCheckerLanguages(['fr', 'en-US']);
+
+    // Propagation automatique du spell check à chaque nouvelle webview créée
+    win.webContents.on('will-attach-webview', (event, webPreferences) => {
+        webPreferences.spellcheck = true;
+    });
+    console.log('[DOMUS] Correcteur orthographique activé : fr + en-US');
 
     // --- INITIALISATION DES EXTENSIONS ---
     loadAllExtensions();

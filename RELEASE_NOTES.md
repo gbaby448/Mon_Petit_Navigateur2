@@ -1,5 +1,21 @@
 # Notes de version - Domus Browser Pro
 
+## ✍️ Version 1.3.12 — Correcteur Orthographique Natif
+*Date : 24 juin 2026*
+
+Activation du correcteur orthographique **Chromium natif** (identique à Chrome) sur tous les champs de formulaire des sites web.
+
+### ✨ Nouveauté
+- **Spell Check FR + EN-US** : Les fautes de frappe sont désormais soulignées en rouge dans tous les `<input>`, `<textarea>` et champs éditables rencontrés sur les pages web.
+- **Clic droit → Suggestions** : Cliquer droit sur un mot souligné propose des corrections, exactement comme dans Chrome ou Firefox.
+- **Propagation automatique** : Le correcteur est activé sur la fenêtre principale ET toutes les webviews via `will-attach-webview`.
+- **Bilingue garanti** : Les langues `fr` et `en-US` sont toutes les deux actives, pas de conflit si un champ est en anglais ou en français.
+
+### 📦 Fichier modifié
+- `src/main.js` : `spellcheck: true` dans `webPreferences` + `setSpellCheckerLanguages(['fr', 'en-US'])` + handler `will-attach-webview`
+
+---
+
 ## 🛠️ Version 1.3.11 — Patch de Stabilité Majeur (9 bugs corrigés)
 *Date : 24 juin 2026*
 
