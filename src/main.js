@@ -806,7 +806,8 @@ function createWindow() {
             nodeIntegration: false,
             webviewTag: true,
             devTools: true,
-            spellcheck: true  // Correcteur orthographique natif Chromium dans le renderer
+            spellcheck: true,
+            plugins: true
         }
     });
 
@@ -814,11 +815,12 @@ function createWindow() {
     // Active la correction dans toutes les webviews (champs de texte des sites web)
     session.defaultSession.setSpellCheckerLanguages(['fr', 'en-US']);
 
-    // Propagation automatique du spell check à chaque nouvelle webview créée
+    // Propagation automatique du spell check et des plugins (PDF, etc.) à chaque nouvelle webview créée
     win.webContents.on('will-attach-webview', (event, webPreferences) => {
         webPreferences.spellcheck = true;
+        webPreferences.plugins = true;
     });
-    console.log('[DOMUS] Correcteur orthographique activé : fr + en-US');
+    console.log('[DOMUS] Correcteur orthographique et plugins PDF activés');
 
     // --- GESTION DES PERMISSIONS (Caméra, Micro, Notifications, Géolocalisation) ---
     session.defaultSession.setPermissionRequestHandler((webContents, permission, callback, details) => {
@@ -1075,6 +1077,8 @@ function createWindow() {
     globalShortcut.register('CommandOrControl+H', () => sendToRenderer('shortcut-history'));
     // Téléchargements
     globalShortcut.register('CommandOrControl+J', () => sendToRenderer('shortcut-downloads'));
+    // Basculer la barre des favoris
+    globalShortcut.register('CommandOrControl+Shift+B', () => sendToRenderer('shortcut-toggle-bookmarks-bar'));
     // DevTools de la webview
     globalShortcut.register('CommandOrControl+Shift+I', () => sendToRenderer('shortcut-devtools'));
     globalShortcut.register('F12', () => sendToRenderer('shortcut-devtools'));

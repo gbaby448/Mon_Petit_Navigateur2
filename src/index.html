@@ -73,6 +73,7 @@
                     <div id="loading-progress"></div>
                     <div id="suggestions-box" class="hidden"></div>
                     <div class="url-actions" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); display: flex; gap: 8px;">
+                        <button id="btn-add-bookmark" title="Ajouter aux Favoris" style="background: none; border: none; cursor: pointer; font-size: 14px; opacity: 0.5; transition: 0.2s;">⭐</button>
                         <button id="btn-save-archive" title="Time Machine : Archiver cette page" style="background: none; border: none; cursor: pointer; font-size: 14px; opacity: 0.6; transition: 0.2s;">🕰️</button>
                     </div>
                 </div>
@@ -92,6 +93,11 @@
                     </div>
                 </div>
             </nav>
+
+            <!-- BARRE DE FAVORIS HORIZONTALE -->
+            <div id="bookmarks-bar" class="hidden">
+                <div id="bookmarks-bar-list"></div>
+            </div>
 
             <!-- FIND IN PAGE DIALOG -->
             <div id="find-in-page-box" class="hidden">

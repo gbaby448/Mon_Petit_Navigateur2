@@ -100,6 +100,65 @@ document.addEventListener('DOMContentLoaded', () => {
     let isVideoAIEnabled = false;
     let isCinemaMode = false;
     const cinemaCSSKeys = new Map();
+
+    // --- UTILS FAVORIS & ZOOM ---
+    function getDomainFromUrl(url) {
+        if (!url) return null;
+        try {
+            if (url.includes('domus://') || url.includes('file://') || url.startsWith('about:')) return null;
+            const parsed = new URL(url);
+            return parsed.hostname;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function saveZoomForDomain(url, factor) {
+        const domain = getDomainFromUrl(url);
+        if (!domain) return;
+        if (!currentSettings.domainZoom) currentSettings.domainZoom = {};
+        currentSettings.domainZoom[domain] = factor;
+        window.domusAPI.saveSettings(currentSettings);
+    }
+
+    function updateBookmarkStar(url) {
+        const btnStar = document.getElementById('btn-add-bookmark');
+        if (!btnStar) return;
+        if (!url || url.includes('domus://') || url.includes('file://') || url.startsWith('about:')) {
+            btnStar.style.display = 'none';
+            return;
+        }
+        btnStar.style.display = 'inline-block';
+        
+        const favorites = currentSettings.favorites || [];
+        const isFav = favorites.some(f => f.url === url);
+        if (isFav) {
+            btnStar.classList.add('active');
+            btnStar.title = "Retirer des Favoris";
+        } else {
+            btnStar.classList.remove('active');
+            btnStar.title = "Ajouter aux Favoris";
+        }
+    }
+
+    function renderBookmarksBar(favorites) {
+        const list = document.getElementById('bookmarks-bar-list');
+        if (!list) return;
+        if (!favorites || favorites.length === 0) {
+            list.innerHTML = '<span style="opacity: 0.4; font-size: 11px; margin-left: 10px;">Aucun favori</span>';
+            return;
+        }
+        list.innerHTML = favorites.map(f => {
+            const title = f.title || f.url;
+            return `
+                <div class="bookmark-bar-item" title="${f.url}" onclick="window.domusAPI.navigate('${f.url}')">
+                    <span class="fav-icon">⭐</span>
+                    <span>${title}</span>
+                </div>
+            `;
+        }).join('');
+    }
+
     // =========================================================================
     // 🔔 SYSTÈME DE NOTIFICATION (TOAST)
     // =========================================================================
@@ -342,6 +401,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (btnDarkMode) {
             btnDarkMode.style.color = settings.forceDark ? 'var(--accent-color)' : '';
         }
+
+        const bBar = document.getElementById('bookmarks-bar');
+        if (bBar) {
+            bBar.classList.toggle('hidden', !settings.showBookmarksBar);
+            if (settings.showBookmarksBar) {
+                renderBookmarksBar(settings.favorites || []);
+            }
+        }
     }
 
     window.domusAPI.getSettings().then(settings => {
@@ -473,6 +540,14 @@ document.addEventListener('DOMContentLoaded', () => {
                         injectCinemaModeForWebview(wv);
                     }, 150);
                 }
+                // Appliquer le zoom dès que le DOM est prêt
+                try {
+                    const currentUrl = wv.getURL();
+                    const domain = getDomainFromUrl(currentUrl);
+                    if (domain && currentSettings.domainZoom && currentSettings.domainZoom[domain] !== undefined) {
+                        wv.setZoomFactor(currentSettings.domainZoom[domain]);
+                    }
+                } catch(e) {}
             });
 
 
@@ -497,7 +572,20 @@ document.addEventListener('DOMContentLoaded', () => {
                         urlInput.value = currentUrl;
                     }
                     updateUrlBarSecurityStyle(currentUrl);
+                    // Mettre à jour l'étoile des favoris
+                    updateBookmarkStar(currentUrl);
                 }
+
+                // Appliquer le zoom par domaine
+                try {
+                    const domain = getDomainFromUrl(currentUrl);
+                    if (domain && currentSettings.domainZoom && currentSettings.domainZoom[domain] !== undefined) {
+                        wv.setZoomFactor(currentSettings.domainZoom[domain]);
+                    } else {
+                        wv.setZoomFactor(1.0);
+                    }
+                } catch(e) {}
+
                 // Mettre à jour les piles d'onglets suite au changement d'URL potentiel
                 handleTabDomainChange(data.id);
                 // Mettre à jour l'état de la session
@@ -696,9 +784,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         urlInput.value = 'domus://newtab';
                         if (typeof updateUrlBarSecurityStyle === 'function') updateUrlBarSecurityStyle('domus://newtab');
                     }
+                    updateBookmarkStar(currentUrl);
                 } catch(e) {
                     urlInput.value = 'domus://newtab';
                     if (typeof updateUrlBarSecurityStyle === 'function') updateUrlBarSecurityStyle('domus://newtab');
+                    updateBookmarkStar('domus://newtab');
                 }
             } else {
                 wv.classList.remove('active');
@@ -2377,6 +2467,39 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!sidePanels.favorites.classList.contains('hidden')) loadFavorites();
     });
 
+    const btnAddBookmark = document.getElementById('btn-add-bookmark');
+    if (btnAddBookmark) {
+        btnAddBookmark.addEventListener('click', async () => {
+            const wv = getActiveWV();
+            if (!wv) return;
+            const currentUrl = wv.getURL();
+            const currentTitle = wv.getTitle() || "Sans titre";
+            
+            if (!currentUrl || currentUrl.includes('domus://') || currentUrl.includes('file://') || currentUrl.startsWith('about:')) return;
+            
+            const favorites = currentSettings.favorites || [];
+            const idx = favorites.findIndex(f => f.url === currentUrl);
+            
+            if (idx !== -1) {
+                favorites.splice(idx, 1);
+                showDomusToast("⭐ Favori retiré.");
+            } else {
+                favorites.push({ title: currentTitle, url: currentUrl });
+                showDomusToast("⭐ Favori ajouté.");
+            }
+            
+            currentSettings.favorites = favorites;
+            await window.domusAPI.saveSettings(currentSettings);
+            updateBookmarkStar(currentUrl);
+            if (currentSettings.showBookmarksBar) {
+                renderBookmarksBar(favorites);
+            }
+            if (!sidePanels.favorites.classList.contains('hidden')) {
+                loadFavorites();
+            }
+        });
+    }
+
     if (btnTimeMachine) btnTimeMachine.addEventListener('click', () => {
         togglePanel(sidePanels.timemachine);
         if (!sidePanels.timemachine.classList.contains('hidden')) loadTimeMachine();
@@ -3185,13 +3308,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (wv) wv.focus();
                     break;
                 case 'zoom-in':
-                    wv = getActiveWV(); if (wv) { var z1 = Math.min((wv.getZoomFactor() || 1) + 0.1, 5); wv.setZoomFactor(z1); showDomusToast('Zoom : ' + Math.round(z1 * 100) + '%'); }
+                    wv = getActiveWV(); if (wv) { var z1 = Math.min((wv.getZoomFactor() || 1) + 0.1, 5); wv.setZoomFactor(z1); showDomusToast('Zoom : ' + Math.round(z1 * 100) + '%'); saveZoomForDomain(wv.getURL(), z1); }
                     break;
                 case 'zoom-out':
-                    wv = getActiveWV(); if (wv) { var z2 = Math.max((wv.getZoomFactor() || 1) - 0.1, 0.25); wv.setZoomFactor(z2); showDomusToast('Zoom : ' + Math.round(z2 * 100) + '%'); }
+                    wv = getActiveWV(); if (wv) { var z2 = Math.max((wv.getZoomFactor() || 1) - 0.1, 0.25); wv.setZoomFactor(z2); showDomusToast('Zoom : ' + Math.round(z2 * 100) + '%'); saveZoomForDomain(wv.getURL(), z2); }
                     break;
                 case 'zoom-reset':
-                    wv = getActiveWV(); if (wv) { wv.setZoomFactor(1); showDomusToast('Zoom 100%'); }
+                    wv = getActiveWV(); if (wv) { wv.setZoomFactor(1); showDomusToast('Zoom 100%'); saveZoomForDomain(wv.getURL(), 1); }
                     break;
                 case 'devtools':
                     wv = getActiveWV(); if (wv) wv.openDevTools(); break;
@@ -3209,6 +3332,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     wv = getActiveWV(); if (wv) window.domusAPI.createTab({ url: 'view-source:' + wv.getURL() }); break;
                 case 'bookmark':
                     if (btnFavorites) btnFavorites.click(); showDomusToast('Ouvrez les Favoris pour ajouter cette page.'); break;
+                case 'toggle-bookmarks-bar':
+                    const bBar = document.getElementById('bookmarks-bar');
+                    if (bBar) {
+                        const isHidden = bBar.classList.toggle('hidden');
+                        currentSettings.showBookmarksBar = !isHidden;
+                        window.domusAPI.saveSettings(currentSettings);
+                        if (!isHidden) {
+                            renderBookmarksBar(currentSettings.favorites || []);
+                        }
+                    }
+                    break;
                 case 'clear-data':
                     if (btnSettings) btnSettings.click(); showDomusToast('Allez dans Parametres pour effacer le cache.'); break;
             }

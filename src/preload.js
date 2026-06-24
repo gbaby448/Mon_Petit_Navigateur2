@@ -148,7 +148,7 @@ if (isSystemPage) {
                 'new-tab','close-tab','next-tab','prev-tab','focus-urlbar',
                 'reload','hard-reload','find','history','downloads',
                 'devtools','back','forward','zoom-in','zoom-out','zoom-reset','stop',
-                'reopen-closed-tab'
+                'reopen-closed-tab','toggle-bookmarks-bar'
             ];
             shortcuts.forEach(action => {
                 ipcRenderer.on(`shortcut-${action}`, () => callback(action));

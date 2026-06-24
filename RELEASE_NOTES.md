@@ -1,14 +1,13 @@
-## Domus Browser Pro v1.4.1 🚀
+## Domus Browser Pro v1.5.0 🚀
 
-Cette mise à jour corrective résout un problème critique de boucle de mise à jour infinie.
+Cette mise à jour majeure apporte des fonctionnalités essentielles demandées par nos utilisateurs pour hisser Domus Browser Pro au niveau des meilleurs navigateurs du marché.
 
-### Correctifs de la version 1.4.1 :
-- **Résolution de la boucle de mise à jour infinie** : Correction de l'algorithme d'identification de version du noyau compilé (`main.jsc`) en lisant dynamiquement les métadonnées de mise à jour appliquées dans l'AppData de l'utilisateur au lieu de se baser uniquement sur la version d'origine du package installé.
-- **Toutes les fonctionnalités de la v1.4.0 incluses** :
-  - **Recherche dans la page (Ctrl+F) non-bloquante** : Remplacement de l'ancienne boîte dialog native `prompt()` par une barre de recherche en overlay élégante avec gestion des boutons Suivant/Précédent et compteur de correspondances en temps réel.
-  - **Restauration de Session (Crash Recovery)** : Restauration automatique et transparente de vos onglets après un démarrage ou le déverrouillage du coffre-fort.
-  - **Gestion intelligente des Workspaces** : Les onglets restaurés retournent automatiquement dans leur espace de travail d'origine.
-  - **Rouvrir les onglets fermés (Ctrl+Shift+T)** : Stockage et réouverture de vos 1000 derniers onglets fermés.
-  - **Gestionnaire de permissions natif** : Caméra, micro et géolocalisation demandent explicitement confirmation via une modale sécurisée.
-  - **Correcteur orthographique natif** : Activé par défaut en français et anglais.
-  - **Page d'erreur réseau personnalisée** : Affichage d'une page d'erreur dark-mode stylisée en français.
+### Nouvelles fonctionnalités :
+- **Visionneuse PDF native intégrée** : Terminé les téléchargements forcés de PDF ! Les documents PDF s'ouvrent désormais directement et proprement dans un onglet grâce au support natif des plugins Chromium.
+- **Barre de favoris horizontale (Ctrl+Shift+B)** : Une barre de favoris classique et élégante fait son apparition juste sous la barre d'adresse. Elle est entièrement personnalisable et son affichage peut être basculé rapidement à l'aide du raccourci clavier `Ctrl+Shift+B`.
+- **Ajout rapide de favoris ⭐** : Un bouton Étoile a été intégré directement dans la barre d'adresse pour ajouter ou retirer le site courant de vos favoris en un seul clic. L'état est instantanément synchronisé avec la barre horizontale et le panneau latéral.
+- **Mémorisation du Zoom par domaine** : Le navigateur se souvient désormais de vos préférences de zoom. Ajustez le zoom pour un site (ex: 120% pour Wikipedia), et chaque nouvelle page de ce domaine s'ouvrira automatiquement avec ce zoom.
+
+### Améliorations de performance et stabilité :
+- **Consistance de la version** : Stabilisation complète du processus de mise à jour automatique introduit en v1.4.1.
+- **Micro-animations CSS** : Amélioration des effets de survol et transitions sur la barre de favoris.
