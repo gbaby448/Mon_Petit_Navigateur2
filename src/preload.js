@@ -112,6 +112,11 @@ if (isSystemPage) {
         openDownloadFolder: () => ipcRenderer.invoke('open-download-folder'),
         openFile: (path) => ipcRenderer.invoke('open-file', path),
         showItemInFolder: (path) => ipcRenderer.invoke('show-item-in-folder', path),
+        pauseDownload: (id) => ipcRenderer.invoke('pause-download', id),
+        resumeDownload: (id) => ipcRenderer.invoke('resume-download', id),
+        cancelDownload: (id) => ipcRenderer.invoke('cancel-download', id),
+        capturePage: (tabId) => ipcRenderer.invoke('capture-page', tabId),
+        printPage: () => ipcRenderer.send('print-page'),
         onDownloadUpdate: (callback) => ipcRenderer.on('download-update', (event, data) => callback(data)),
         onStartFade: (callback) => ipcRenderer.on('start-fade', () => callback()),
         onEndFade: (callback) => ipcRenderer.on('end-fade', () => callback()),
@@ -150,7 +155,7 @@ if (isSystemPage) {
                 'new-tab','close-tab','next-tab','prev-tab','focus-urlbar',
                 'reload','hard-reload','find','history','downloads',
                 'devtools','back','forward','zoom-in','zoom-out','zoom-reset','stop',
-                'reopen-closed-tab','toggle-bookmarks-bar'
+                'reopen-closed-tab','toggle-bookmarks-bar','print'
             ];
             shortcuts.forEach(action => {
                 ipcRenderer.on(`shortcut-${action}`, () => callback(action));

@@ -2650,6 +2650,30 @@ document.addEventListener('DOMContentLoaded', () => {
             options.push({ icon: '🔄', text: 'Actualiser',                   action: () => wv.reload() });
             options.push({ separator: true });
             options.push({ icon: '🖨️', text: 'Imprimer…',                    action: () => wv.print() });
+            options.push({ icon: '📷', text: 'Capturer la page',              action: async () => {
+                showDomusToast('📷 Capture en cours…');
+                const result = await window.domusAPI.capturePage(activeTabId);
+                if (result && result.success) {
+                    showDomusToast(`✅ Capture sauvegardée : ${result.fileName}`);
+                } else {
+                    showDomusToast('❌ Échec de la capture.');
+                }
+            }});
+            options.push({ separator: true });
+            options.push({ icon: '🎞️', text: 'Image dans une fenêtre flottante (PiP)', action: () => {
+                wv.executeJavaScript(`
+                    (async function() {
+                        const video = document.querySelector('video');
+                        if (video) {
+                            try { await video.requestPictureInPicture(); }
+                            catch(e) { console.warn('PiP not available:', e.message); }
+                        } else {
+                            alert('Aucune vidéo trouvée sur cette page.');
+                        }
+                    })();
+                `).catch(() => {});
+                showDomusToast('🎞️ Mode Picture-in-Picture activé');
+            }});
             options.push({ separator: true });
             options.push({ icon: '🌐', text: 'Traduire en français',         action: () => { wv.src = `https://translate.google.com/translate?sl=auto&tl=fr&u=${encodeURIComponent(currentUrl)}`; showDomusToast('Traduction en cours…'); } });
             options.push({ icon: '📋', text: "Copier l'adresse de la page", action: () => { navigator.clipboard.writeText(currentUrl); showDomusToast('URL copiée.'); } });
@@ -3695,6 +3719,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     break;
                 case 'clear-data':
                     if (btnSettings) btnSettings.click(); showDomusToast('Allez dans Parametres pour effacer le cache.'); break;
+                case 'print':
+                    wv = getActiveWV();
+                    if (wv) {
+                        wv.print();
+                        showDomusToast('🖨️ Ouverture de l\'impression…');
+                    }
+                    break;
             }
         });
     }

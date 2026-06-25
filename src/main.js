@@ -925,6 +925,25 @@ function createWindow() {
     });
 
     // --- CYCLE DE VIE DES TÉLÉCHARGEMENTS ---
+    // Registre des téléchargements actifs pour Pause/Reprise/Annulation
+    const activeDownloadItems = new Map();
+
+    ipcMain.handle('pause-download', (e, id) => {
+        const it = activeDownloadItems.get(id);
+        if (it && it.canResume()) { it.pause(); return true; }
+        return false;
+    });
+    ipcMain.handle('resume-download', (e, id) => {
+        const it = activeDownloadItems.get(id);
+        if (it) { it.resume(); return true; }
+        return false;
+    });
+    ipcMain.handle('cancel-download', (e, id) => {
+        const it = activeDownloadItems.get(id);
+        if (it) { it.cancel(); return true; }
+        return false;
+    });
+
     session.defaultSession.on('will-download', (event, item, webContents) => {
         const downloads = loadData(downloadsPath);
         const id = `dl-${Date.now()}`;
@@ -950,6 +969,7 @@ function createWindow() {
             timestamp: Date.now()
         };
         
+        activeDownloadItems.set(id, item);
         downloads.unshift(dlEntry);
         saveData(downloadsPath, downloads);
         
@@ -960,13 +980,13 @@ function createWindow() {
         
         item.on('updated', (event, state) => {
             if (state === 'interrupted') {
-                dlEntry.state = 'interrupted';
+                dlEntry.state = item.canResume() ? 'paused' : 'interrupted';
             } else if (state === 'progressing') {
                 const rec = item.getReceivedBytes();
                 dlEntry.received = rec;
                 dlEntry.receivedBytes = rec;
                 dlEntry.progress = totalBytes > 0 ? Math.round((rec / totalBytes) * 100) : 0;
-                dlEntry.state = 'downloading';
+                dlEntry.state = item.isPaused() ? 'paused' : 'downloading';
             }
             
             const currentDl = loadData(downloadsPath);
@@ -982,6 +1002,7 @@ function createWindow() {
         });
         
         item.once('done', (event, state) => {
+            activeDownloadItems.delete(id);
             if (state === 'completed') {
                 dlEntry.state = 'completed';
                 dlEntry.progress = 100;
@@ -1111,6 +1132,8 @@ function createWindow() {
     }
     // Esc = arrêter le chargement
     globalShortcut.register('Escape', () => sendToRenderer('shortcut-stop'));
+    // Impression
+    globalShortcut.register('CommandOrControl+P', () => sendToRenderer('shortcut-print'));
 }
 
 app.on('will-quit', () => globalShortcut.unregisterAll());
@@ -1507,6 +1530,38 @@ ipcMain.on('webview-gesture', (e, gesture) => {
         win.webContents.send('execute-gesture', gesture);
     }
 });
+
+// --- IMPRESSION DE PAGE ---
+ipcMain.on('print-page', () => {
+    if (win && !win.isDestroyed()) {
+        win.webContents.send('shortcut-print');
+    }
+});
+
+// --- CAPTURE D'ÉCRAN DE PAGE ---
+ipcMain.handle('capture-page', async (e, tabId) => {
+    if (!win || win.isDestroyed()) return null;
+    try {
+        const image = await win.webContents.executeJavaScript(`
+            (function() {
+                const wv = document.getElementById('view-' + '${tabId}');
+                return wv ? true : false;
+            })()
+        `);
+        if (!image) return null;
+        // Capture la fenêtre principale
+        const nativeImage = await win.webContents.capturePage();
+        const pngBuffer = nativeImage.toPNG();
+        const fileName = 'capture-domus-' + Date.now() + '.png';
+        const savePath = path.join(app.getPath('pictures'), fileName);
+        fs.writeFileSync(savePath, pngBuffer);
+        return { success: true, path: savePath, fileName };
+    } catch (err) {
+        return { success: false, error: err.message };
+    }
+});
+
+
 
 // Variable globale pour stocker les sessions configurées
 const configuredSessions = new Set();

@@ -1,6 +1,6 @@
 {
   "name": "domus-browser",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "description": "Navigateur souverain, sécurisé et performant.",
   "main": "src/index.js",
   "scripts": {

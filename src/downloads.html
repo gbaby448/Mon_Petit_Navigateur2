@@ -466,12 +466,27 @@
                 itemEl.title = "Double-cliquez pour ouvrir ce fichier";
 
                 let actionsHtml = '';
+                const dlId = item.id;
                 if (item.state === 'completed' && item.savePath) {
                     const escapedPath = item.savePath.replace(/\\/g, '\\\\');
                     actionsHtml = `
                         <div class="dl-actions" style="margin-top: 8px; display: flex; gap: 15px;">
                             <span class="dl-action-link" style="color: var(--accent); cursor: pointer; font-size: 0.85rem; font-weight: 600; text-decoration: underline;" onclick="event.stopPropagation(); window.domusAPI.openFile('${escapedPath}')">🚀 Ouvrir</span>
                             <span class="dl-action-link" style="color: var(--info); cursor: pointer; font-size: 0.85rem; font-weight: 600; text-decoration: underline;" onclick="event.stopPropagation(); window.domusAPI.showItemInFolder('${escapedPath}')">📁 Afficher dans le dossier</span>
+                        </div>
+                    `;
+                } else if (item.state === 'downloading') {
+                    actionsHtml = `
+                        <div class="dl-actions" style="margin-top: 8px; display: flex; gap: 12px;">
+                            <span class="dl-action-link" style="color: var(--warning); cursor: pointer; font-size: 0.85rem; font-weight: 600;" onclick="event.stopPropagation(); window.domusAPI.pauseDownload('${dlId}').then(()=>{})">⏸ Pause</span>
+                            <span class="dl-action-link" style="color: var(--danger); cursor: pointer; font-size: 0.85rem; font-weight: 600;" onclick="event.stopPropagation(); window.domusAPI.cancelDownload('${dlId}').then(()=>{})">✕ Annuler</span>
+                        </div>
+                    `;
+                } else if (item.state === 'paused') {
+                    actionsHtml = `
+                        <div class="dl-actions" style="margin-top: 8px; display: flex; gap: 12px;">
+                            <span class="dl-action-link" style="color: var(--accent); cursor: pointer; font-size: 0.85rem; font-weight: 600;" onclick="event.stopPropagation(); window.domusAPI.resumeDownload('${dlId}').then(()=>{})">▶ Reprendre</span>
+                            <span class="dl-action-link" style="color: var(--danger); cursor: pointer; font-size: 0.85rem; font-weight: 600;" onclick="event.stopPropagation(); window.domusAPI.cancelDownload('${dlId}').then(()=>{})">✕ Annuler</span>
                         </div>
                     `;
                 }
