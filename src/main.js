@@ -926,23 +926,10 @@ function createWindow() {
 
     // --- CYCLE DE VIE DES TÉLÉCHARGEMENTS ---
     // Registre des téléchargements actifs pour Pause/Reprise/Annulation
-    const activeDownloadItems = new Map();
-
-    ipcMain.handle('pause-download', (e, id) => {
-        const it = activeDownloadItems.get(id);
-        if (it && it.canResume()) { it.pause(); return true; }
-        return false;
-    });
-    ipcMain.handle('resume-download', (e, id) => {
-        const it = activeDownloadItems.get(id);
-        if (it) { it.resume(); return true; }
-        return false;
-    });
-    ipcMain.handle('cancel-download', (e, id) => {
-        const it = activeDownloadItems.get(id);
-        if (it) { it.cancel(); return true; }
-        return false;
-    });
+    // (géré via référence externe pour éviter double enregistrement IPC)
+    if (!global.activeDownloadItems) {
+        global.activeDownloadItems = new Map();
+    }
 
     session.defaultSession.on('will-download', (event, item, webContents) => {
         const downloads = loadData(downloadsPath);
@@ -969,7 +956,7 @@ function createWindow() {
             timestamp: Date.now()
         };
         
-        activeDownloadItems.set(id, item);
+        global.activeDownloadItems.set(id, item);
         downloads.unshift(dlEntry);
         saveData(downloadsPath, downloads);
         
@@ -1002,7 +989,7 @@ function createWindow() {
         });
         
         item.once('done', (event, state) => {
-            activeDownloadItems.delete(id);
+            global.activeDownloadItems.delete(id);
             if (state === 'completed') {
                 dlEntry.state = 'completed';
                 dlEntry.progress = 100;
@@ -1505,6 +1492,23 @@ ipcMain.handle('clear-cache', async () => {
 // --- IPC DES TÉLÉCHARGEMENTS ---
 ipcMain.handle('get-downloads', () => loadData(downloadsPath));
 ipcMain.handle('clear-downloads', () => { saveData(downloadsPath, []); return []; });
+
+// Contrôle des téléchargements actifs (Pause/Reprise/Annulation)
+ipcMain.handle('pause-download', (e, id) => {
+    const it = global.activeDownloadItems && global.activeDownloadItems.get(id);
+    if (it && it.canResume()) { it.pause(); return true; }
+    return false;
+});
+ipcMain.handle('resume-download', (e, id) => {
+    const it = global.activeDownloadItems && global.activeDownloadItems.get(id);
+    if (it) { it.resume(); return true; }
+    return false;
+});
+ipcMain.handle('cancel-download', (e, id) => {
+    const it = global.activeDownloadItems && global.activeDownloadItems.get(id);
+    if (it) { it.cancel(); return true; }
+    return false;
+});
 ipcMain.handle('open-download-folder', () => {
     shell.openPath(app.getPath('downloads'));
     return true;
