@@ -69,11 +69,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnCloseHub = document.getElementById('btn-close-hub');
     const shieldContainer = document.getElementById('shield-container');
     
-    // Modales additionnelles (Déplacées vers le haut pour éviter le ReferenceError)
+    // Modales additionnelles
     const securityModal = document.getElementById('security-modal');
     const addPwdModal = document.getElementById('add-pwd-modal');
     const profileFlyout = document.getElementById('profile-flyout');
-    const wizardModal = document.getElementById('security-wizard-modal'); // Corrigé : l'ID réel
+    const wizardModal = document.getElementById('security-wizard-modal');
+    // FIX : pageSnapshotBg était utilisé sans être déclaré (crash ligne ~1588)
+    const pageSnapshotBg = document.getElementById('page-snapshot-bg') || null;
+    // Workspace switcher (tab bar)
+    const wsSwitcher = document.getElementById('ws-switcher');
+    const wsDropdown = document.getElementById('ws-dropdown');
+    const wsDropdownList = document.getElementById('ws-dropdown-list');
+    const btnWsNew = document.getElementById('btn-ws-new');
+    let currentWsColor = '#00ff88';
+    let workspacesCache = [];
 
     let activeTabId = null;
     let activeTabElementId = null;
@@ -817,9 +826,18 @@ document.addEventListener('DOMContentLoaded', () => {
             document.body.classList.toggle('zen-mode');
             showDomusToast(document.body.classList.contains('zen-mode') ? "Zen Mode Activé 🧘" : "Zen Mode Désactivé");
         }
+        // Raccourcis Ctrl+1..9 pour basculer entre espaces
+        if (e.ctrlKey && e.key >= '1' && e.key <= '9') {
+            const idx = parseInt(e.key) - 1;
+            if (workspacesCache[idx]) {
+                e.preventDefault();
+                window.domusAPI.switchProfile(workspacesCache[idx].id);
+            }
+        }
         if (e.key === 'Escape') {
             closeProfileFlyout();
             hideSuggestions();
+            if (wsDropdown) wsDropdown.classList.add('hidden');
             if (hubModal && !hubModal.classList.contains('hidden')) {
                 hubModal.classList.add('hidden');
                 updateModalState();
@@ -1046,7 +1064,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.domusAPI.onWorkspaceSwitched((data) => {
         currentProfile = data.profile;
-        
+
+        // Appliquer la couleur d'accent de l'espace
+        if (data.color) {
+            currentWsColor = data.color;
+            document.documentElement.style.setProperty('--ws-accent', data.color);
+        }
+
         // Cacher tous les onglets UI et webviews
         document.querySelectorAll('.tab').forEach(t => {
             t.style.display = 'none';
@@ -1054,42 +1078,35 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         document.querySelectorAll('webview').forEach(wv => {
             wv.classList.remove('active');
-            // La visibilité du webview est gérée par la classe .active dans style.css
         });
-        
+
         // Afficher/Créer les onglets du workspace courant
         data.tabs.forEach(tabData => {
             const existingTab = document.getElementById(`ui-${tabData.id}`);
             if (existingTab) {
                 existingTab.classList.remove('ws-hidden');
-                existingTab.style.display = 'flex'; // Remettre visible
+                existingTab.style.display = 'flex';
             } else {
                 createTabElement(tabData);
             }
         });
-        
-        // Sélectionner un onglet valide pour ce workspace
+
+        // Sélectionner un onglet valide
         const activeTab = data.tabs.find(t => t.active) || data.tabs[data.tabs.length - 1];
         if (activeTab) {
             window.domusAPI.switchTab(activeTab.id);
         } else {
             window.domusAPI.createTab({ url: 'domus://newtab' });
         }
-        
-        // Gestion visuelle du mode privé
-        if (data.isPrivate) {
-            document.body.classList.add('domus-private-mode');
-        } else {
-            document.body.classList.remove('domus-private-mode');
-        }
-        
-        const label = data.profile === 'private' ? 'Navigation Privée' : data.profile.toUpperCase();
-        showDomusToast(`Session : ${label}`);
-        
-        // Mettre à jour l'état visuel du flyout si ouvert
-        if (typeof renderWorkspaces === 'function') {
-            renderWorkspaces();
-        }
+
+        // Mode privé
+        document.body.classList.toggle('domus-private-mode', !!data.isPrivate);
+
+        // Mettre à jour le switcher dans la tab bar
+        updateWsSwitcher();
+
+        if (typeof renderWorkspaces === 'function') renderWorkspaces();
+        renderWsDropdown();
     });
 
     window.domusAPI.onWorkspaceCounts((data) => {
@@ -1468,100 +1485,218 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // Render dynamique des espaces
-    const renderWorkspaces = async () => {
-        const workspaceList = document.getElementById('workspace-list');
-        if (!workspaceList) return;
-        
-        try {
-            const workspaces = await window.domusAPI.getWorkspaces();
-            workspaceList.innerHTML = '';
-            
-            workspaces.forEach(ws => {
-                const opt = document.createElement('div');
-                opt.className = 'profile-option' + (ws.isPrivate ? ' private' : '') + (ws.id === currentProfile ? ' active' : '');
-                opt.dataset.profile = ws.id;
-                opt.innerHTML = `<span>${ws.icon}</span> ${ws.name}`;
-                
-                // Si ce n'est pas un default, on ajoute un bouton suppression
-                if (!['default', 'work', 'private'].includes(ws.id)) {
-                    const delBtn = document.createElement('button');
-                    delBtn.innerHTML = '✕';
-                    delBtn.style.cssText = 'margin-left: auto; background: none; border: none; color: #ff4444; cursor: pointer;';
-                    delBtn.onclick = (e) => {
-                        e.stopPropagation();
-                        if (confirm(`Supprimer l'espace "${ws.name}" ? Les onglets seront renvoyés vers Standard.`)) {
-                            window.domusAPI.deleteWorkspace(ws.id);
-                        }
-                    };
-                    opt.appendChild(delBtn);
-                }
-                
-                opt.onclick = () => {
-                    window.domusAPI.switchProfile(ws.id);
-                    closeProfileFlyout();
-                    showDomusToast(`Basculement vers l'espace : ${ws.name}`);
-                };
-                
-                workspaceList.appendChild(opt);
-            });
-        } catch (e) {
-            console.error("Erreur chargement workspaces", e);
+    // =====================================================================
+    // WORKSPACE SWITCHER (tab bar)
+    // =====================================================================
+    const updateWsSwitcher = () => {
+        const ws = workspacesCache.find(w => w.id === currentProfile);
+        if (!ws) return;
+        const iconEl = document.getElementById('ws-switcher-icon');
+        const nameEl = document.getElementById('ws-switcher-name');
+        if (iconEl) iconEl.textContent = ws.icon || '🌐';
+        if (nameEl) nameEl.textContent = ws.name || 'Mon Espace';
+        if (wsSwitcher) {
+            wsSwitcher.style.borderColor = ws.color || '#00ff88';
+            wsSwitcher.style.color = ws.color || '#00ff88';
         }
     };
 
-    // Charger les espaces au démarrage
+    const renderWsDropdown = () => {
+        if (!wsDropdownList) return;
+        wsDropdownList.innerHTML = '';
+        workspacesCache.forEach((ws, idx) => {
+            const item = document.createElement('div');
+            item.className = 'ws-drop-item' + (ws.id === currentProfile ? ' active' : '');
+            item.style.setProperty('--ws-c', ws.color || '#00ff88');
+            item.innerHTML = `
+                <span class="ws-drop-icon">${ws.icon}</span>
+                <span class="ws-drop-name">${ws.name}</span>
+                <span class="ws-drop-kbd">Ctrl+${idx + 1}</span>
+                ${ws.id !== 'default' ? '<button class="ws-drop-del" title="Supprimer">🗑</button>' : ''}
+            `;
+            item.onclick = (e) => {
+                if (e.target.closest('.ws-drop-del')) return;
+                window.domusAPI.switchProfile(ws.id);
+                wsDropdown.classList.add('hidden');
+                showDomusToast(`${ws.icon} ${ws.name}`);
+            };
+            const delBtn = item.querySelector('.ws-drop-del');
+            if (delBtn) delBtn.onclick = async (e) => {
+                e.stopPropagation();
+                const ok = await showDomusConfirm('Supprimer l\'espace', `Supprimer "${ws.name}" ?`, '🗑️');
+                if (ok) window.domusAPI.deleteWorkspace(ws.id);
+            };
+            wsDropdownList.appendChild(item);
+        });
+    };
+
+    if (wsSwitcher) {
+        wsSwitcher.onclick = (e) => {
+            e.stopPropagation();
+            wsDropdown && wsDropdown.classList.toggle('hidden');
+        };
+    }
+    if (btnWsNew) {
+        btnWsNew.onclick = (e) => {
+            e.stopPropagation();
+            wsDropdown && wsDropdown.classList.add('hidden');
+            const modal = document.getElementById('create-workspace-modal');
+            if (modal) modal.classList.remove('hidden');
+        };
+    }
+    document.addEventListener('click', (e) => {
+        if (wsDropdown && !wsSwitcher.contains(e.target) && !wsDropdown.contains(e.target)) {
+            wsDropdown.classList.add('hidden');
+        }
+    });
+
+    // =====================================================================
+    // RENDER WORKSPACES (flyout sidebar panel)
+    // =====================================================================
+    const renderWorkspaces = async () => {
+        const workspaceList = document.getElementById('workspace-list');
+        try {
+            const workspaces = await window.domusAPI.getWorkspaces();
+            workspacesCache = workspaces;
+            updateWsSwitcher();
+            renderWsDropdown();
+            if (!workspaceList) return;
+            workspaceList.innerHTML = '';
+            workspaces.forEach(ws => {
+                const card = document.createElement('div');
+                card.className = 'ws-card' + (ws.id === currentProfile ? ' active' : '');
+                card.style.setProperty('--ws-c', ws.color || '#00ff88');
+                card.innerHTML = `
+                    <div class="ws-card-icon">${ws.icon}</div>
+                    <div class="ws-card-info">
+                        <div class="ws-card-name">${ws.name}</div>
+                        ${ws.isPrivate ? '<div class="ws-card-private">🕵️ Privé</div>' : ''}
+                    </div>
+                    ${ws.id !== 'default' ? '<button class="ws-card-del" title="Supprimer">🗑</button>' : ''}
+                `;
+                card.onclick = (e) => {
+                    if (e.target.closest('.ws-card-del')) return;
+                    window.domusAPI.switchProfile(ws.id);
+                    closeProfileFlyout();
+                };
+                const delBtn = card.querySelector('.ws-card-del');
+                if (delBtn) delBtn.onclick = async (e) => {
+                    e.stopPropagation();
+                    const ok = await showDomusConfirm('Supprimer l\'espace', `Supprimer "${ws.name}" ?`, '🗑️');
+                    if (ok) window.domusAPI.deleteWorkspace(ws.id);
+                };
+                workspaceList.appendChild(card);
+            });
+        } catch (e) {
+            console.error('Erreur chargement workspaces', e);
+        }
+    };
+
     renderWorkspaces();
 
-    // Mettre à jour si modifiés
     if (window.domusAPI.onWorkspacesUpdated) {
-        window.domusAPI.onWorkspacesUpdated(() => {
-            renderWorkspaces();
+        window.domusAPI.onWorkspacesUpdated(async () => {
+            await renderWorkspaces();
         });
     }
 
-    // Modal Création Espace
+    // =====================================================================
+    // WORKSPACE STUDIO MODAL — logique complète
+    // =====================================================================
     const createWsModal = document.getElementById('create-workspace-modal');
     const btnCreateWs = document.getElementById('btn-create-workspace');
     const btnConfirmCreateWs = document.getElementById('btn-confirm-create-ws');
     const wsIconSelector = document.getElementById('ws-icon-selector');
     const wsNameInput = document.getElementById('ws-name-input');
-    
     const btnOpenAddWs = document.getElementById('btn-open-add-ws');
-    
-    if (btnCreateWs && createWsModal) {
-        btnCreateWs.onclick = (e) => {
-            e.stopPropagation();
-            closeProfileFlyout();
-            createWsModal.classList.remove('hidden');
-        };
-    }
-    
-    if (btnOpenAddWs && createWsModal) {
-        btnOpenAddWs.onclick = () => {
-            createWsModal.classList.remove('hidden');
-        };
-    }
-    
-    let selectedWsIcon = '🚀';
+    const wsColorCustom = document.getElementById('ws-color-custom');
+    const wsPrivateToggle = document.getElementById('ws-private-toggle');
+    const wsPreviewIcon = document.getElementById('ws-preview-icon');
+    const wsPreviewName = document.getElementById('ws-preview-name');
+    const wsPreviewCard = document.getElementById('ws-preview-card');
+    const wsPreviewBadge = document.getElementById('ws-preview-badge');
+
+    let selectedWsIcon = '🌐';
+    let selectedWsColor = '#00ff88';
+
+    const updateWsPreview = () => {
+        if (wsPreviewIcon) wsPreviewIcon.textContent = selectedWsIcon;
+        if (wsPreviewName) wsPreviewName.textContent = wsNameInput ? (wsNameInput.value.trim() || 'Mon Espace') : 'Mon Espace';
+        if (wsPreviewCard) wsPreviewCard.style.setProperty('--ws-c', selectedWsColor);
+        if (wsPreviewBadge) wsPreviewBadge.textContent = wsPrivateToggle && wsPrivateToggle.checked ? '🕵️ Privé' : '';
+    };
+
+    const openWsStudio = () => {
+        if (!createWsModal) return;
+        selectedWsIcon = '🌐';
+        selectedWsColor = '#00ff88';
+        if (wsNameInput) wsNameInput.value = '';
+        if (wsPrivateToggle) wsPrivateToggle.checked = false;
+        if (wsColorCustom) wsColorCustom.value = '#00ff88';
+        document.querySelectorAll('.ws-color-chip').forEach(c => c.classList.toggle('active', c.dataset.color === '#00ff88'));
+        document.querySelectorAll('#ws-icon-selector .icon-option').forEach(i => i.classList.toggle('active', i.dataset.icon === '🌐'));
+        updateWsPreview();
+        createWsModal.classList.remove('hidden');
+        setTimeout(() => wsNameInput && wsNameInput.focus(), 100);
+    };
+
+    if (btnCreateWs) btnCreateWs.onclick = (e) => { e.stopPropagation(); closeProfileFlyout(); openWsStudio(); };
+    if (btnOpenAddWs) btnOpenAddWs.onclick = openWsStudio;
+
+    if (wsNameInput) wsNameInput.oninput = updateWsPreview;
+    if (wsPrivateToggle) wsPrivateToggle.onchange = updateWsPreview;
+
+    // Icônes
     if (wsIconSelector) {
         wsIconSelector.querySelectorAll('.icon-option').forEach(iconEl => {
             iconEl.onclick = () => {
                 wsIconSelector.querySelectorAll('.icon-option').forEach(i => i.classList.remove('active'));
                 iconEl.classList.add('active');
                 selectedWsIcon = iconEl.dataset.icon;
+                updateWsPreview();
             };
         });
     }
-    
+
+    // Couleurs chips
+    document.querySelectorAll('.ws-color-chip').forEach(chip => {
+        chip.onclick = () => {
+            document.querySelectorAll('.ws-color-chip').forEach(c => c.classList.remove('active'));
+            chip.classList.add('active');
+            selectedWsColor = chip.dataset.color;
+            if (wsColorCustom) wsColorCustom.value = selectedWsColor;
+            updateWsPreview();
+        };
+    });
+
+    // Couleur personnalisée
+    if (wsColorCustom) wsColorCustom.oninput = () => {
+        selectedWsColor = wsColorCustom.value;
+        document.querySelectorAll('.ws-color-chip').forEach(c => c.classList.remove('active'));
+        updateWsPreview();
+    };
+
+    // Templates
+    document.querySelectorAll('.ws-tpl').forEach(tpl => {
+        tpl.onclick = () => {
+            if (wsNameInput) wsNameInput.value = tpl.dataset.name;
+            selectedWsIcon = tpl.dataset.icon;
+            selectedWsColor = tpl.dataset.color;
+            if (wsColorCustom) wsColorCustom.value = selectedWsColor;
+            document.querySelectorAll('.ws-color-chip').forEach(c => c.classList.toggle('active', c.dataset.color === selectedWsColor));
+            document.querySelectorAll('#ws-icon-selector .icon-option').forEach(i => i.classList.toggle('active', i.dataset.icon === selectedWsIcon));
+            updateWsPreview();
+        };
+    });
+
     if (btnConfirmCreateWs) {
         btnConfirmCreateWs.onclick = () => {
-            const name = wsNameInput.value.trim();
-            if (!name) return alert("Le nom est requis");
-            window.domusAPI.addWorkspace(name, selectedWsIcon);
-            createWsModal.classList.add('hidden');
-            wsNameInput.value = '';
-            showDomusToast(`Espace "${name}" créé !`);
+            const name = wsNameInput ? wsNameInput.value.trim() : '';
+            if (!name) { wsNameInput && wsNameInput.focus(); return; }
+            window.domusAPI.addWorkspace(name, selectedWsIcon, selectedWsColor, wsPrivateToggle && wsPrivateToggle.checked);
+            if (createWsModal) createWsModal.classList.add('hidden');
+            if (wsNameInput) wsNameInput.value = '';
+            showDomusToast(`${selectedWsIcon} Espace "${name}" créé !`);
         };
     }
 

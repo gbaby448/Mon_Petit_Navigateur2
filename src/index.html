@@ -49,6 +49,20 @@
         <main class="main-content">
             <!-- TAB BAR -->
             <div id="tabs-bar">
+                <!-- WORKSPACE SWITCHER — toujours visible dans la barre d'onglets -->
+                <div id="ws-switcher" title="Changer d'espace de travail">
+                    <div id="ws-switcher-icon">🌐</div>
+                    <span id="ws-switcher-name">Mon Espace</span>
+                    <span id="ws-switcher-arrow">▾</span>
+                </div>
+                <!-- DROPDOWN DES ESPACES (ouvert au clic sur le switcher) -->
+                <div id="ws-dropdown" class="hidden">
+                    <div class="ws-dropdown-header">Espaces de Travail</div>
+                    <div id="ws-dropdown-list"></div>
+                    <div class="ws-dropdown-footer">
+                        <button id="btn-ws-new" class="ws-dropdown-add">✦ Nouvel Espace</button>
+                    </div>
+                </div>
                 <div id="tabs-container"></div>
                 <button id="btn-new-tab" class="tab-btn" title="Nouvel Onglet">+</button>
                 <button id="btn-new-shadow-tab" class="tab-btn shadow-btn" title="Nouvel Onglet Shadow éphémère">👻</button>
@@ -243,31 +257,133 @@
                 </div>
             </div>
 
-            <!-- MODAL CRÉATION ESPACE -->
+            <!-- WORKSPACE STUDIO MODAL -->
             <div id="create-workspace-modal" class="modal-overlay hidden">
-                <div class="modal-content" style="max-width: 400px;">
-                    <div class="modal-header">
-                        <h2>Créer un Espace</h2>
+                <div class="ws-studio-modal">
+                    <!-- En-tête -->
+                    <div class="ws-studio-header">
+                        <div class="ws-studio-title">✦ Nouvel Espace de Travail</div>
                         <button class="modal-close" data-close="create-workspace-modal">✕</button>
                     </div>
-                    <div class="modal-body">
-                        <div class="form-group">
-                            <label>Nom de l'espace</label>
-                            <input type="text" id="ws-name-input" placeholder="Ex: Projets Persos..." class="domus-input">
-                        </div>
-                        <div class="form-group">
-                            <label>Icône</label>
-                            <div style="display: flex; gap: 10px; font-size: 24px;" id="ws-icon-selector">
-                                <span class="icon-option active" style="cursor: pointer;" data-icon="🚀">🚀</span>
-                                <span class="icon-option" style="cursor: pointer;" data-icon="🎨">🎨</span>
-                                <span class="icon-option" style="cursor: pointer;" data-icon="💰">💰</span>
-                                <span class="icon-option" style="cursor: pointer;" data-icon="🎮">🎮</span>
-                                <span class="icon-option" style="cursor: pointer;" data-icon="📚">📚</span>
+
+                    <div class="ws-studio-body">
+                        <!-- COLONNE GAUCHE : formulaire -->
+                        <div class="ws-studio-form">
+
+                            <!-- Nom -->
+                            <div class="ws-field">
+                                <label class="ws-label">Nom</label>
+                                <input type="text" id="ws-name-input" placeholder="Ex : Projets, Gaming, Perso..." class="ws-input" maxlength="24" autocomplete="off">
                             </div>
+
+                            <!-- Templates rapides -->
+                            <div class="ws-field">
+                                <label class="ws-label">Templates</label>
+                                <div class="ws-templates">
+                                    <button class="ws-tpl" data-name="Travail" data-icon="💼" data-color="#4fc3f7">💼 Travail</button>
+                                    <button class="ws-tpl" data-name="Études" data-icon="📚" data-color="#ce93d8">📚 Études</button>
+                                    <button class="ws-tpl" data-name="Gaming" data-icon="🎮" data-color="#f06292">🎮 Gaming</button>
+                                    <button class="ws-tpl" data-name="Finance" data-icon="💰" data-color="#a5d6a7">💰 Finance</button>
+                                    <button class="ws-tpl" data-name="Musique" data-icon="🎵" data-color="#ffb74d">🎵 Musique</button>
+                                    <button class="ws-tpl" data-name="Shopping" data-icon="🛍️" data-color="#ff8a65">🛍️ Shopping</button>
+                                </div>
+                            </div>
+
+                            <!-- Icône -->
+                            <div class="ws-field">
+                                <label class="ws-label">Icône</label>
+                                <div class="ws-icon-grid" id="ws-icon-selector">
+                                    <!-- Catégorie Général -->
+                                    <span class="icon-option active" data-icon="🌐">🌐</span>
+                                    <span class="icon-option" data-icon="🏠">🏠</span>
+                                    <span class="icon-option" data-icon="⭐">⭐</span>
+                                    <span class="icon-option" data-icon="🔖">🔖</span>
+                                    <span class="icon-option" data-icon="🗂️">🗂️</span>
+                                    <span class="icon-option" data-icon="📌">📌</span>
+                                    <!-- Travail -->
+                                    <span class="icon-option" data-icon="💼">💼</span>
+                                    <span class="icon-option" data-icon="📊">📊</span>
+                                    <span class="icon-option" data-icon="📋">📋</span>
+                                    <span class="icon-option" data-icon="🖥️">🖥️</span>
+                                    <span class="icon-option" data-icon="⚙️">⚙️</span>
+                                    <span class="icon-option" data-icon="🔧">🔧</span>
+                                    <!-- Études -->
+                                    <span class="icon-option" data-icon="📚">📚</span>
+                                    <span class="icon-option" data-icon="🎓">🎓</span>
+                                    <span class="icon-option" data-icon="✏️">✏️</span>
+                                    <span class="icon-option" data-icon="🧪">🧪</span>
+                                    <span class="icon-option" data-icon="🔬">🔬</span>
+                                    <span class="icon-option" data-icon="📐">📐</span>
+                                    <!-- Loisirs -->
+                                    <span class="icon-option" data-icon="🎮">🎮</span>
+                                    <span class="icon-option" data-icon="🎬">🎬</span>
+                                    <span class="icon-option" data-icon="🎵">🎵</span>
+                                    <span class="icon-option" data-icon="🎨">🎨</span>
+                                    <span class="icon-option" data-icon="📷">📷</span>
+                                    <span class="icon-option" data-icon="✈️">✈️</span>
+                                    <!-- Finance -->
+                                    <span class="icon-option" data-icon="💰">💰</span>
+                                    <span class="icon-option" data-icon="💳">💳</span>
+                                    <span class="icon-option" data-icon="📈">📈</span>
+                                    <span class="icon-option" data-icon="🏦">🏦</span>
+                                    <span class="icon-option" data-icon="🛍️">🛍️</span>
+                                    <span class="icon-option" data-icon="🏷️">🏷️</span>
+                                    <!-- Vie perso -->
+                                    <span class="icon-option" data-icon="❤️">❤️</span>
+                                    <span class="icon-option" data-icon="🏋️">🏋️</span>
+                                    <span class="icon-option" data-icon="🍕">🍕</span>
+                                    <span class="icon-option" data-icon="🌿">🌿</span>
+                                    <span class="icon-option" data-icon="🐾">🐾</span>
+                                    <span class="icon-option" data-icon="🚀">🚀</span>
+                                </div>
+                            </div>
+
+                            <!-- Couleur -->
+                            <div class="ws-field">
+                                <label class="ws-label">Couleur d'accent</label>
+                                <div class="ws-color-row">
+                                    <div class="ws-color-chips">
+                                        <span class="ws-color-chip active" data-color="#00ff88" style="background:#00ff88"></span>
+                                        <span class="ws-color-chip" data-color="#4fc3f7" style="background:#4fc3f7"></span>
+                                        <span class="ws-color-chip" data-color="#ce93d8" style="background:#ce93d8"></span>
+                                        <span class="ws-color-chip" data-color="#f06292" style="background:#f06292"></span>
+                                        <span class="ws-color-chip" data-color="#ffb74d" style="background:#ffb74d"></span>
+                                        <span class="ws-color-chip" data-color="#ff8a65" style="background:#ff8a65"></span>
+                                        <span class="ws-color-chip" data-color="#a5d6a7" style="background:#a5d6a7"></span>
+                                        <span class="ws-color-chip" data-color="#ffffff" style="background:#ffffff; border: 1px solid rgba(255,255,255,0.3);"></span>
+                                    </div>
+                                    <input type="color" id="ws-color-custom" value="#00ff88" title="Couleur personnalisée" class="ws-color-input">
+                                </div>
+                            </div>
+
+                            <!-- Mode Privé -->
+                            <div class="ws-field ws-private-row">
+                                <label class="ws-label" for="ws-private-toggle">🕵️ Navigation privée</label>
+                                <label class="switch">
+                                    <input type="checkbox" id="ws-private-toggle">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+
+                        </div>
+
+                        <!-- COLONNE DROITE : Preview live -->
+                        <div class="ws-studio-preview">
+                            <div class="ws-preview-label">Aperçu</div>
+                            <div class="ws-preview-card" id="ws-preview-card">
+                                <div class="ws-preview-icon" id="ws-preview-icon">🌐</div>
+                                <div class="ws-preview-name" id="ws-preview-name">Mon Espace</div>
+                                <div class="ws-preview-tabs">0 onglet</div>
+                                <div class="ws-preview-badge" id="ws-preview-badge"></div>
+                            </div>
+                            <div class="ws-preview-tip">💡 Raccourci <kbd>Ctrl+1</kbd>...<kbd>9</kbd></div>
                         </div>
                     </div>
-                    <div class="modal-footer">
-                        <button id="btn-confirm-create-ws" class="domus-btn primary">Créer</button>
+
+                    <!-- Footer -->
+                    <div class="ws-studio-footer">
+                        <button class="domus-btn secondary" data-close="create-workspace-modal">Annuler</button>
+                        <button id="btn-confirm-create-ws" class="domus-btn primary">✦ Créer l'Espace</button>
                     </div>
                 </div>
             </div>

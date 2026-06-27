@@ -59,7 +59,7 @@ if (isSystemPage) {
         // --- UI & PANNEAUX LATÉRAUX ---
         resizeActiveTab: (options) => ipcRenderer.send('resize-active-tab', options),
         toggleSidebar: (hidden) => ipcRenderer.send('toggle-sidebar', hidden),
-        addWorkspace: (name, icon) => ipcRenderer.send('add-workspace', { name, icon }),
+        addWorkspace: (name, icon, color, isPrivate) => ipcRenderer.send('add-workspace', { name, icon, color, isPrivate }),
         deleteWorkspace: (id) => ipcRenderer.send('delete-workspace', id),
         moveWorkspace: (id, direction) => ipcRenderer.send('move-workspace', { id, direction }), // To reorder workspaces
         moveTabToWorkspace: (tabId, targetWorkspace) => ipcRenderer.send('move-tab-to-workspace', { tabId, targetWorkspace }),

@@ -66,11 +66,9 @@ let currentWorkspace = 'default';
 let activeTabId = null;
 const closedTabsStack = [];
 
-// Initialize default workspaces
+// Initialize default workspaces — only ONE base workspace, user creates the rest
 const defaultWorkspaces = [
-    { id: 'default', name: 'Standard', icon: '🏠', isPrivate: false },
-    { id: 'work', name: 'Travail', icon: '💼', isPrivate: false },
-    { id: 'private', name: 'Mode Privé', icon: '🕵️', isPrivate: true }
+    { id: 'default', name: 'Mon Espace', icon: '🌐', color: '#00ff88', isPrivate: false }
 ];
 
 // Helpers de données
@@ -1131,11 +1129,9 @@ app.on('will-quit', () => globalShortcut.unregisterAll());
 
 ipcMain.handle('get-workspaces', () => {
     let workspaces = loadData(workspacesPath, defaultWorkspaces);
-    // Assurer que les espaces par défaut existent toujours
-    const defaultIds = defaultWorkspaces.map(w => w.id);
-    const missingDefaults = defaultWorkspaces.filter(w => !workspaces.find(cw => cw.id === w.id));
-    if (missingDefaults.length > 0) {
-        workspaces = [...missingDefaults, ...workspaces];
+    // S'assurer que l'espace racine 'default' existe toujours
+    if (!workspaces.find(w => w.id === 'default')) {
+        workspaces = [defaultWorkspaces[0], ...workspaces];
         saveData(workspacesPath, workspaces);
     }
     return workspaces;
@@ -1153,7 +1149,8 @@ ipcMain.on('switch-profile', (e, profileId) => {
         win.webContents.send('workspace-switched', { 
             profile: profileId, 
             tabs: wsTabs,
-            isPrivate: ws ? ws.isPrivate : false 
+            isPrivate: ws ? ws.isPrivate : false,
+            color: ws ? (ws.color || '#00ff88') : '#00ff88'
         });
     }
 });
@@ -1164,19 +1161,28 @@ ipcMain.on('add-workspace', (e, data) => {
         id: 'ws-' + Date.now(),
         name: data.name,
         icon: data.icon,
-        isPrivate: false
+        color: data.color || '#00ff88',
+        isPrivate: data.isPrivate || false
     };
     workspaces.push(newWs);
     saveData(workspacesPath, workspaces);
     
+    // Basculer automatiquement vers le nouvel espace
+    currentWorkspace = newWs.id;
     if (win && !win.isDestroyed()) {
         win.webContents.send('workspaces-updated', workspaces);
+        win.webContents.send('workspace-switched', {
+            profile: newWs.id,
+            tabs: [],
+            isPrivate: newWs.isPrivate,
+            color: newWs.color
+        });
     }
 });
 
 ipcMain.on('delete-workspace', (e, id) => {
-    // Ne pas supprimer les espaces par défaut
-    if (['default', 'work', 'private'].includes(id)) return;
+    // Ne pas supprimer l'espace racine
+    if (id === 'default') return;
     
     let workspaces = loadData(workspacesPath, defaultWorkspaces);
     workspaces = workspaces.filter(w => w.id !== id);
@@ -1192,11 +1198,13 @@ ipcMain.on('delete-workspace', (e, id) => {
     
     if (currentWorkspace === id) {
         currentWorkspace = 'default';
+        const defaultWs = loadData(workspacesPath, defaultWorkspaces).find(w => w.id === 'default') || defaultWorkspaces[0];
         if (win && !win.isDestroyed()) {
             win.webContents.send('workspace-switched', { 
                 profile: 'default', 
                 tabs: Array.from(tabs.values()).filter(t => t.workspace === 'default'),
-                isPrivate: false 
+                isPrivate: false,
+                color: defaultWs.color || '#00ff88'
             });
         }
     }
