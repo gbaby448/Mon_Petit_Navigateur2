@@ -1600,20 +1600,31 @@ document.addEventListener('DOMContentLoaded', () => {
             renderWsDropdown();
             if (!workspaceList) return;
             workspaceList.innerHTML = '';
-            workspaces.forEach(ws => {
+            workspaces.forEach((ws, idx) => {
                 const card = document.createElement('div');
                 card.className = 'ws-card' + (ws.id === currentProfile ? ' active' : '');
                 card.style.setProperty('--ws-c', ws.color || '#00ff88');
+                
+                const isFirst = idx === 0;
+                const isLast = idx === workspaces.length - 1;
+                
+                const upBtnHtml = `<button class="ws-card-move ws-card-up" title="Monter" ${isFirst ? 'disabled style="opacity: 0.1; cursor: not-allowed;"' : ''}>▲</button>`;
+                const downBtnHtml = `<button class="ws-card-move ws-card-down" title="Descendre" ${isLast ? 'disabled style="opacity: 0.1; cursor: not-allowed;"' : ''}>▼</button>`;
+                
                 card.innerHTML = `
                     <div class="ws-card-icon">${ws.icon}</div>
                     <div class="ws-card-info">
                         <div class="ws-card-name">${ws.name}</div>
                         ${ws.isPrivate ? '<div class="ws-card-private">🕵️ Privé</div>' : ''}
                     </div>
-                    ${ws.id !== 'default' ? '<button class="ws-card-del" title="Supprimer">🗑</button>' : ''}
+                    <div class="ws-card-actions" style="display: flex; gap: 4px; align-items: center; margin-left: auto;">
+                        ${upBtnHtml}
+                        ${downBtnHtml}
+                        ${ws.id !== 'default' ? '<button class="ws-card-del" title="Supprimer">🗑</button>' : ''}
+                    </div>
                 `;
                 card.onclick = (e) => {
-                    if (e.target.closest('.ws-card-del')) return;
+                    if (e.target.closest('.ws-card-del') || e.target.closest('.ws-card-move')) return;
                     window.domusAPI.switchProfile(ws.id);
                     closeProfileFlyout();
                 };
@@ -1623,6 +1634,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     const ok = await showDomusConfirm('Supprimer l\'espace', `Supprimer "${ws.name}" ?`, '🗑️');
                     if (ok) window.domusAPI.deleteWorkspace(ws.id);
                 };
+                
+                const upBtn = card.querySelector('.ws-card-up');
+                if (upBtn && !isFirst) upBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    window.domusAPI.moveWorkspace(ws.id, 'up');
+                };
+                
+                const downBtn = card.querySelector('.ws-card-down');
+                if (downBtn && !isLast) downBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    window.domusAPI.moveWorkspace(ws.id, 'down');
+                };
+                
                 workspaceList.appendChild(card);
             });
         } catch (e) {

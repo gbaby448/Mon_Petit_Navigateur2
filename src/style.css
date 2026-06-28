@@ -2656,6 +2656,18 @@ body.cinema-mode .main-content {
 }
 .ws-card:hover .ws-card-del { opacity: 0.5; }
 .ws-card-del:hover { opacity: 1 !important; }
+.ws-card-move {
+    background: none;
+    border: none;
+    color: #ffffff;
+    cursor: pointer;
+    opacity: 0;
+    font-size: 11px;
+    transition: opacity 0.15s;
+    padding: 4px;
+}
+.ws-card:hover .ws-card-move { opacity: 0.4; }
+.ws-card-move:hover { opacity: 0.9 !important; }
 
 /* =====================================================================
    WORKSPACE STUDIO MODAL

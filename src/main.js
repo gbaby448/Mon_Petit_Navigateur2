@@ -1849,13 +1849,12 @@ app.on('web-contents-created', (event, contents) => {
             let ua = defaultUA;
 
             const urlLower = details.url.toLowerCase();
-            const isGoogleRelated = urlLower.includes('google') || 
-                                    urlLower.includes('gstatic') || 
-                                    urlLower.includes('youtube') || 
-                                    urlLower.includes('ggpht') ||
-                                    urlLower.includes('googleusercontent');
+            // On ne simule Firefox que sur la page de connexion Google (accounts.google.com)
+            // car Google bloque les navigateurs Electron lors de la connexion.
+            // Simuler Firefox sur tous les services Google/YouTube provoque des redirections et des blocages anti-robot.
+            const isGoogleLogin = urlLower.includes('accounts.google.com') || urlLower.includes('accounts.google.');
 
-            if (isGoogleRelated) {
+            if (isGoogleLogin) {
                 ua = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:126.0) Gecko/20100101 Firefox/126.0';
                 
                 // Supprimer les Client Hints Chromium pour simuler Firefox à 100% de manière indétectable

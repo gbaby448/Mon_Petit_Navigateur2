@@ -1,3 +1,14 @@
+## Domus Browser Pro v1.8.9 🌟
+
+### Résolution Définitive des Boucles de MAJ, Corrections YouTube et Réorganisation des Espaces
+
+Cette mise à jour corrige des bugs majeurs d'utilisation et ajoute de nouvelles fonctionnalités de gestion :
+- **Correction des boucles de mise à jour** : Les processus de l'ancienne version sont désormais terminés avec l'arborescence complète (option `/T` de taskkill) et un délai de 1 seconde est appliqué avant le swap de l'archive `app.asar`. De plus, les fichiers de mise à jour temporaires sont préservés en cas d'échec de swap temporaire.
+- **Correction des redirections YouTube et des blocages de connexion** : Limitation du spoofing d'User-Agent Firefox à la page d'authentification Google (`accounts.google.com`) uniquement. Cela résout définitivement les redirections vers la page d'accueil de YouTube et les erreurs d'accès de sécurité anti-robot sur les autres sites Google.
+- **Réorganisation des espaces de travail** : Ajout de boutons de déplacement (Monter ▲ / Descendre ▼) directement sur les cartes d'espaces dans le panneau latéral pour réorganiser et trier les espaces de travail à votre convenance.
+
+---
+
 ## Domus Browser Pro v1.8.8 🌟
 
 ### Stabilisation du Système de Mise à Jour, Session et Optimisation Réseau

@@ -45,7 +45,7 @@ cleanupOldFiles();
 function killOtherInstances() {
     try {
         console.log("[DOMUS] Nettoyage des processus persistants...");
-        execSync(`taskkill /F /IM DomusPro.exe /FI "PID ne ${process.pid}"`, { stdio: 'ignore' });
+        execSync(`taskkill /F /T /IM DomusPro.exe /FI "PID ne ${process.pid}"`, { stdio: 'ignore' });
     } catch (e) {}
 }
 
@@ -110,6 +110,8 @@ const updateFlagPath  = path.join(UPDATE_STAGING_DIR, 'just-updated.flag');
 if (!isDev && fs.existsSync(updateAsarPath)) {
     try {
         console.log("[DOMUS] Application d'une mise à jour ASAR complète dans AppData...");
+        killOtherInstances();
+        sleepSync(1000);
         safeRenameSync(updateAsarPath, appDataAsarPath);
         
         // Nettoyer l'ancien format partiel s'il existe pour éviter tout conflit
@@ -133,6 +135,8 @@ if (!isDev && fs.existsSync(updateAsarPath)) {
 } else if (!isDev && fs.existsSync(updatePath)) {
     try {
         console.log("[DOMUS] Application d'une mise à jour JSC partielle dans AppData...");
+        killOtherInstances();
+        sleepSync(1000);
         safeRenameSync(updatePath, appDataJscPath);
         
         if (fs.existsSync(updateMetaPath)) {
@@ -175,6 +179,14 @@ if (fs.existsSync(appDataMetaPath)) {
     } catch (e) {}
 }
 
+let pendingUpdateVersion = '0.0.0';
+if (fs.existsSync(updateMetaPath)) {
+    try {
+        const meta = JSON.parse(fs.readFileSync(updateMetaPath, 'utf8'));
+        pendingUpdateVersion = meta.version || '0.0.0';
+    } catch (e) {}
+}
+
 // Si la version physique (bundled) installée sur le PC est plus récente ou identique à l'AppData,
 // on nettoie l'AppData pour forcer l'utilisation du nouveau binaire physique propre.
 if (!isDev && compareVersions(bundledVersion, appDataVersion) >= 0) {
@@ -193,9 +205,13 @@ if (!isDev && compareVersions(bundledVersion, appDataVersion) >= 0) {
     safeDelete(appDataAsarPath);
     safeDelete(appDataJscPath);
     safeDelete(appDataMetaPath);
-    safeDelete(updateAsarPath);
-    safeDelete(updatePath);
-    safeDelete(updateMetaPath);
+    
+    // On ne supprime le dossier temporaire/update de mise à jour que si la mise à jour en attente n'est pas plus récente que le binaire physique
+    if (compareVersions(bundledVersion, pendingUpdateVersion) >= 0) {
+        safeDelete(updateAsarPath);
+        safeDelete(updatePath);
+        safeDelete(updateMetaPath);
+    }
 }
 
 // Déterminer quel binaire charger (priorité à l'app.asar complet, puis main.jsc, puis bundled)
