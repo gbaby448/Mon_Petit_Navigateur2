@@ -31,6 +31,29 @@ $installer = "dist\DomusPro Setup $version.exe"
 if (-not (Test-Path $installer)) { Write-Host "ERREUR : Installeur introuvable : $installer" -ForegroundColor Red; exit 1 }
 Write-Host "      OK - $installer" -ForegroundColor Green
 
+# --- Etape 2b : Packaging de l'archive app.asar pour MAJ a chaud ---
+Write-Host "[2b/5] Creation de l'archive app.asar de mise a jour..." -ForegroundColor Yellow
+$tempDir = "dist\app_temp"
+if (Test-Path $tempDir) { Remove-Item -Recurse -Force $tempDir }
+New-Item -ItemType Directory -Path "$tempDir\src" | Out-Null
+
+# Copier tous les fichiers de src/ sauf main.js (on ne garde que main.jsc pour le code ferme)
+Copy-Item "src\*" "$tempDir\src" -Recurse -Force
+if (Test-Path "$tempDir\src\main.js") { Remove-Item "$tempDir\src\main.js" -Force }
+
+# Copier package.json
+Copy-Item "package.json" "$tempDir" -Force
+
+# Packager avec asar
+$asarFile = "dist\app.asar"
+if (Test-Path $asarFile) { Remove-Item $asarFile -Force }
+npx asar pack $tempDir $asarFile
+if ($LASTEXITCODE -ne 0) { Write-Host "ERREUR : Packaging asar echoue." -ForegroundColor Red; exit 1 }
+
+# Nettoyer
+Remove-Item -Recurse -Force $tempDir
+Write-Host "      OK - app.asar genere dans dist\app.asar" -ForegroundColor Green
+
 # --- Etape 3 : Commit et tag Git ---
 Write-Host "[3/5] Commit et tag Git..." -ForegroundColor Yellow
 $prevErrorAction = $ErrorActionPreference
@@ -87,11 +110,12 @@ if ($exists) {
 gh release create $tag `
     "$installer" `
     "$jscPath" `
+    "$asarFile" `
     --title "Domus Browser Pro $version" `
     --notes-file $notesFile
 
 if ($LASTEXITCODE -ne 0) { Write-Host "ERREUR : Creation de la release GitHub echouee." -ForegroundColor Red; exit 1 }
-Write-Host "      OK - Release $tag publiee avec main.jsc + installeur." -ForegroundColor Green
+Write-Host "      OK - Release $tag publiee avec main.jsc + app.asar + installeur." -ForegroundColor Green
 
 # --- Etape 5 : Resume ---
 Write-Host ""

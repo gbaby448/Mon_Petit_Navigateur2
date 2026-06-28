@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Sécurité CSP -->
+    <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data: https:;">
+    <title>Téléchargements - Domus Browser</title>
+    <style>
+        :root {
+            --bg-dark: #050506;
+            --bg-panel: #0d0d10;
+            --bg-card: #14141a;
+            --accent: #00ff88;
+            --accent-glow: rgba(0, 255, 136, 0.4);
+            --text-main: #ffffff;
+            --text-dim: #8e8e93;
+            --border: rgba(255, 255, 255, 0.08);
+            --danger: #ff3b30;
+            --warning: #ffcc00;
+            --info: #0078d4;
+            --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            --max-content-width: 1000px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        /* --- EN-TÊTE FIXE (STICKY HEADER) --- */
+        header {
+            background: rgba(13, 13, 16, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            padding: 30px 5%;
+            display: flex;
+            justify-content: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            width: 100%;
+            max-width: var(--max-content-width);
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .title-area {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+
+        .icon-title {
+            font-size: 2.5rem;
+            filter: drop-shadow(0 0 10px rgba(0, 120, 212, 0.3));
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-grow: 1;
+            justify-content: flex-end;
+        }
+
+        /* Barre de recherche */
+        .search-box {
+            position: relative;
+            max-width: 350px;
+            width: 100%;
+        }
+
+        .search-box input {
+            width: 100%;
+            background: var(--bg-dark);
+            border: 1px solid var(--border);
+            color: white;
+            padding: 12px 15px 12px 40px;
+            border-radius: 10px;
+            outline: none;
+            font-size: 0.95rem;
+            transition: var(--transition);
+        }
+
+        .search-box input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(0, 255, 136, 0.1);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            opacity: 0.5;
+            font-size: 1rem;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: var(--transition);
+            background: transparent;
+            color: var(--text-dim);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: white;
+        }
+
+        .btn-folder {
+            background: rgba(0, 120, 212, 0.1);
+            color: var(--info);
+            border-color: rgba(0, 120, 212, 0.3);
+        }
+
+        .btn-folder:hover {
+            background: rgba(0, 120, 212, 0.2);
+            color: #66b2ff;
+        }
+
+        /* --- ZONE DE CONTENU --- */
+        main {
+            flex: 1;
+            overflow-y: auto;
+            padding: 40px 5% 100px;
+            display: flex;
+            justify-content: center;
+        }
+
+        main::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        main::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        main::-webkit-scrollbar-thumb {
+            background: #333;
+            border-radius: 4px;
+        }
+
+        main::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        .downloads-container {
+            width: 100%;
+            max-width: var(--max-content-width);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* --- CARTE TÉLÉCHARGEMENT --- */
+        .dl-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            /* Liseré de couleur par défaut */
+            border-left: 4px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            transition: var(--transition);
+            animation: fadeIn 0.4s ease-out forwards;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            /* Indique qu'on peut cliquer */
+        }
+
+        /* Liseré dynamique selon l'état du téléchargement */
+        .dl-item.state-completed {
+            border-left-color: var(--text-dim);
+        }
+
+        .dl-item.state-downloading {
+            border-left-color: var(--accent);
+        }
+
+        .dl-item.state-paused {
+            border-left-color: var(--warning);
+        }
+
+        .dl-item.state-danger {
+            border-left-color: var(--danger);
+        }
+
+        .dl-item:hover {
+            border-color: rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .dl-icon {
+            font-size: 2.2rem;
+            width: 55px;
+            height: 55px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            flex-shrink: 0;
+            border: 1px solid var(--border);
+            transition: var(--transition);
+        }
+
+        .dl-content {
+            flex-grow: 1;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .dl-title {
+            font-weight: 700;
+            font-size: 1.05rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 5px;
+        }
+
+        .dl-url {
+            color: var(--text-dim);
+            font-size: 0.8rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 12px;
+        }
+
+        /* Barre de progression */
+        .dl-progress-wrapper {
+            height: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 8px;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+        }
+
+        .dl-progress-fill {
+            height: 100%;
+            background: var(--accent);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+            box-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        .dl-progress-fill.paused {
+            background: var(--warning);
+            box-shadow: 0 0 10px rgba(255, 204, 0, 0.3);
+        }
+
+        .dl-progress-fill.completed {
+            background: var(--text-dim);
+            box-shadow: none;
+        }
+
+        .dl-progress-fill.danger {
+            background: var(--danger);
+            box-shadow: 0 0 10px rgba(255, 59, 48, 0.4);
+        }
+
+        /* Meta infos (taille, temps) */
+        .dl-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            font-weight: 500;
+        }
+
+        .dl-status-text.downloading {
+            color: var(--accent);
+        }
+
+        .dl-status-text.paused {
+            color: var(--warning);
+        }
+
+        .dl-status-text.danger {
+            color: var(--danger);
+        }
+
+        /* État vide */
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 80px 20px;
+            text-align: center;
+            opacity: 0.4;
+        }
+
+        .empty-state-icon {
+            font-size: 5rem;
+            margin-bottom: 20px;
+            filter: grayscale(1);
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <div class="header-content">
+            <div class="title-area">
+                <span class="icon-title">⬇️</span>
+                <h1>Téléchargements</h1>
+            </div>
+            <div class="header-actions">
+                <div class="search-box">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="searchInput" placeholder="Rechercher un fichier...">
+                </div>
+                <button class="btn btn-folder" id="openFolderBtn">
+                    <span>📁</span> Ouvrir le dossier
+                </button>
+                <button class="btn" id="clearListBtn">Nettoyer la liste</button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="downloads-container" id="downloads-container">
+            <div class="empty-state">
+                <p>Chargement des téléchargements...</p>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const container = document.getElementById('downloads-container');
+        const searchInput = document.getElementById('searchInput');
+        let fullDownloadData = []; // Données réelles transmises par le pont système
+
+        // Formatage lisible du poids des fichiers
+        function formatBytes(bytes, decimals = 2) {
+            if (!bytes || bytes === 0) return 'Inconnu';
+            const k = 1024;
+            const dm = decimals < 0 ? 0 : decimals;
+            const sizes = ['Octets', 'Ko', 'Mo', 'Go', 'To'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+        }
+
+        // --- MOTEUR DE COULEUR INTELLIGENT ---
+        // Attribue un emoji et une couleur dynamiques en fonction de l'extension
+        function getFileInfo(fileName) {
+            if (!fileName) return { icon: '📦', color: '#8e8e93' };
+            const ext = fileName.split('.').pop().toLowerCase();
+
+            if (['iso', 'img'].includes(ext)) return { icon: '💿', color: '#0078d4' }; // Bleu
+            if (['zip', 'rar', 'tar', 'gz', '7z'].includes(ext)) return { icon: '🗜️', color: '#ffcc00' }; // Jaune
+            if (['exe', 'msi', 'deb', 'rpm'].includes(ext)) return { icon: '⚙️', color: '#00ff88' }; // Vert
+            if (['pdf'].includes(ext)) return { icon: '📄', color: '#ff3b30' }; // Rouge
+            if (['mp4', 'mkv', 'avi', 'mov'].includes(ext)) return { icon: '🎬', color: '#bf5af2' }; // Violet
+            if (['mp3', 'wav', 'flac'].includes(ext)) return { icon: '🎵', color: '#32ade6' }; // Cyan
+            if (['jpg', 'jpeg', 'png', 'gif', 'svg'].includes(ext)) return { icon: '🖼️', color: '#ff9500' }; // Orange
+
+            return { icon: '📦', color: '#8e8e93' }; // Gris neutre par défaut
+        }
+
+        // --- MOTEUR DE RENDU UI ---
+        function renderDownloads(data) {
+            container.innerHTML = '';
+
+            if (data.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🛸</div>
+                        <h2>Aucun téléchargement</h2>
+                        <p style="margin-top: 10px;">L'espace est vide. Téléchargez quelque chose pour commencer.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            data.forEach(item => {
+                // Progression mathématique
+                const progressPercent = item.totalBytes > 0 ? (item.receivedBytes / item.totalBytes) * 100 : 0;
+
+                let stateClass = '';
+                let statusText = '';
+
+                // Textes et classes d'état
+                switch (item.state) {
+                    case 'downloading':
+                        stateClass = 'downloading';
+                        statusText = `<span class="dl-status-text downloading">En cours... ${item.speed || ''}</span>`;
+                        break;
+                    case 'paused':
+                        stateClass = 'paused';
+                        statusText = `<span class="dl-status-text paused">En pause</span>`;
+                        break;
+                    case 'completed':
+                        stateClass = 'completed';
+                        statusText = `<span class="dl-status-text">Terminé (Double-cliquez pour ouvrir)</span>`;
+                        break;
+                    case 'interrupted':
+                        stateClass = 'danger';
+                        statusText = `<span class="dl-status-text danger">${item.speed || 'Échec'}</span>`;
+                        break;
+                }
+
+                // Récupération des attributs de couleur
+                const fileInfo = getFileInfo(item.fileName);
+
+                const itemEl = document.createElement('div');
+                itemEl.className = `dl-item state-${stateClass}`;
+                itemEl.title = "Double-cliquez pour ouvrir ce fichier";
+
+                let actionsHtml = '';
+                const dlId = item.id;
+                if (item.state === 'completed' && item.savePath) {
+                    const escapedPath = item.savePath.replace(/\\/g, '\\\\');
+                    actionsHtml = `
+                        <div class="dl-actions" style="margin-top: 8px; display: flex; gap: 15px;">
+                            <span class="dl-action-link" style="color: var(--accent); cursor: pointer; font-size: 0.85rem; font-weight: 600; text-decoration: underline;" onclick="event.stopPropagation(); window.domusAPI.openFile('${escapedPath}')">🚀 Ouvrir</span>
+                            <span class="dl-action-link" style="color: var(--info); cursor: pointer; font-size: 0.85rem; font-weight: 600; text-decoration: underline;" onclick="event.stopPropagation(); window.domusAPI.showItemInFolder('${escapedPath}')">📁 Afficher dans le dossier</span>
+                        </div>
+                    `;
+                } else if (item.state === 'downloading') {
+                    actionsHtml = `
+                        <div class="dl-actions" style="margin-top: 8px; display: flex; gap: 12px;">
+                            <span class="dl-action-link" style="color: var(--warning); cursor: pointer; font-size: 0.85rem; font-weight: 600;" onclick="event.stopPropagation(); window.domusAPI.pauseDownload('${dlId}').then(()=>{})">⏸ Pause</span>
+                            <span class="dl-action-link" style="color: var(--danger); cursor: pointer; font-size: 0.85rem; font-weight: 600;" onclick="event.stopPropagation(); window.domusAPI.cancelDownload('${dlId}').then(()=>{})">✕ Annuler</span>
+                        </div>
+                    `;
+                } else if (item.state === 'paused') {
+                    actionsHtml = `
+                        <div class="dl-actions" style="margin-top: 8px; display: flex; gap: 12px;">
+                            <span class="dl-action-link" style="color: var(--accent); cursor: pointer; font-size: 0.85rem; font-weight: 600;" onclick="event.stopPropagation(); window.domusAPI.resumeDownload('${dlId}').then(()=>{})">▶ Reprendre</span>
+                            <span class="dl-action-link" style="color: var(--danger); cursor: pointer; font-size: 0.85rem; font-weight: 600;" onclick="event.stopPropagation(); window.domusAPI.cancelDownload('${dlId}').then(()=>{})">✕ Annuler</span>
+                        </div>
+                    `;
+                }
+
+                itemEl.innerHTML = `
+                    <div class="dl-icon" style="background: ${fileInfo.color}15; color: ${fileInfo.color}; border-color: ${fileInfo.color}40;">
+                        ${fileInfo.icon}
+                    </div>
+                    <div class="dl-content">
+                        <div class="dl-title">${item.fileName}</div>
+                        <div class="dl-url" title="${item.url}">${item.url}</div>
+                        
+                        <div class="dl-progress-wrapper">
+                            <div class="dl-progress-fill ${stateClass}" style="width: ${progressPercent}%"></div>
+                        </div>
+                        
+                        <div class="dl-meta">
+                            <div>${formatBytes(item.receivedBytes)} / ${formatBytes(item.totalBytes)}</div>
+                            <div>${statusText}</div>
+                        </div>
+                        ${actionsHtml}
+                    </div>
+                `;
+
+                // 🚀 GESTION DU DOUBLE-CLIC POUR OUVERTURE
+                itemEl.addEventListener('dblclick', async () => {
+                    if (item.state === 'completed' && item.savePath) {
+                        if (window.domusAPI && window.domusAPI.openFile) {
+                            const result = await window.domusAPI.openFile(item.savePath);
+                            if (window.domusAPI.onShowToast) {
+                                if (result.success) {
+                                    window.domusAPI.onShowToast(`🚀 Lancement de ${item.fileName}...`);
+                                } else {
+                                    window.domusAPI.onShowToast(`⚠️ Impossible de trouver le fichier. A-t-il été déplacé ?`);
+                                }
+                            }
+                        }
+                    } else if (item.state === 'downloading') {
+                        if (window.domusAPI && window.domusAPI.onShowToast) {
+                            window.domusAPI.onShowToast(`⏳ Patientez, le fichier est encore en cours de téléchargement.`);
+                        }
+                    }
+                });
+
+                container.appendChild(itemEl);
+            });
+        }
+
+        // --- ECOUTEURS DE BOUTONS ---
+        searchInput.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            const filteredData = fullDownloadData.filter(item =>
+                item.fileName.toLowerCase().includes(query) ||
+                item.url.toLowerCase().includes(query)
+            );
+            renderDownloads(filteredData);
+        });
+
+        document.getElementById('clearListBtn').addEventListener('click', async () => {
+            if (window.domusAPI) {
+                fullDownloadData = await window.domusAPI.clearDownloads();
+                renderDownloads(fullDownloadData);
+            }
+        });
+
+        document.getElementById('openFolderBtn').addEventListener('click', () => {
+            if (window.domusAPI) {
+                window.domusAPI.openDownloadFolder();
+            }
+        });
+
+        // --- INITIALISATION AU CHARGEMENT ---
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (window.domusAPI) {
+                // 1. Charger l'historique complet des téléchargements
+                fullDownloadData = await window.domusAPI.getDownloads();
+                renderDownloads(fullDownloadData);
+
+                // 2. S'abonner aux mises à jour en direct (vitesse, progression)
+                window.domusAPI.onDownloadUpdate((newData) => {
+                    fullDownloadData = newData;
+                    // On empêche le re-rendu si l'utilisateur fait une recherche en cours
+                    if (searchInput.value.trim() === '') {
+                        renderDownloads(fullDownloadData);
+                    }
+                });
+            } else {
+                container.innerHTML = '<div class="empty-state"><h2>Erreur de connexion au pont système.</h2></div>';
+            }
+        });
+    </script>
+</body>
+
+</html>

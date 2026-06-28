@@ -1,3 +1,22 @@
+## Domus Browser Pro v1.7.3 🌟
+
+### Robustesse des Mises à Jour & Templates de Workspace Personnalisés
+
+Cette mise à jour apporte une robustesse accrue au système de mise à jour automatique tout en étendant la personnalisation dans le Workspace Studio.
+
+#### ✨ Nouveautés :
+- **Mise à jour complète via `app.asar`** : Les mises à jour à chaud remplacent désormais la totalité de la logique et de l'interface graphique (au lieu de seulement `main.jsc`), évitant ainsi toute désynchronisation et assurant une stabilité parfaite à chaque transition de version.
+- **Templates Personnalisés** : Possibilité de sauvegarder n'importe quel espace en tant que template réutilisable depuis le Workspace Studio via le bouton `⭐ Enregistrer comme Template`. Ils s'affichent sous "Mes Templates" et peuvent être supprimés d'un simple clic (`×`).
+- **Nouveaux Templates Prédéfinis Premium** : Ajout de templates préconfigurés pour le divertissement et la technologie :
+  - **Multimédia** (📺)
+  - **Vidéos** (🎬)
+  - **Réseaux Tech** (🌐)
+  - **Créatif** (🎨)
+  - **Presse** (📰)
+  - **Perso** (🏠)
+
+---
+
 ## Domus Browser Pro v1.7.2 🌐
 
 ### Refonte complète des Espaces de Travail

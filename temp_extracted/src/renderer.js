@@ -1636,7 +1636,6 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.ws-color-chip').forEach(c => c.classList.toggle('active', c.dataset.color === '#00ff88'));
         document.querySelectorAll('#ws-icon-selector .icon-option').forEach(i => i.classList.toggle('active', i.dataset.icon === '🌐'));
         updateWsPreview();
-        loadAndRenderCustomTemplates();
         createWsModal.classList.remove('hidden');
         setTimeout(() => wsNameInput && wsNameInput.focus(), 100);
     };
@@ -1677,118 +1676,18 @@ document.addEventListener('DOMContentLoaded', () => {
         updateWsPreview();
     };
 
-    // Helper d'application de template
-    const applyTemplate = (name, icon, color) => {
-        if (wsNameInput) wsNameInput.value = name;
-        selectedWsIcon = icon;
-        selectedWsColor = color;
-        if (wsColorCustom) wsColorCustom.value = selectedWsColor;
-        document.querySelectorAll('.ws-color-chip').forEach(c => c.classList.toggle('active', c.dataset.color === selectedWsColor));
-        document.querySelectorAll('#ws-icon-selector .icon-option').forEach(i => i.classList.toggle('active', i.dataset.icon === selectedWsIcon));
-        updateWsPreview();
-    };
-
-    // Templates prédéfinis
+    // Templates
     document.querySelectorAll('.ws-tpl').forEach(tpl => {
-        if (tpl.closest('#ws-custom-templates')) return;
         tpl.onclick = () => {
-            applyTemplate(tpl.dataset.name, tpl.dataset.icon, tpl.dataset.color);
+            if (wsNameInput) wsNameInput.value = tpl.dataset.name;
+            selectedWsIcon = tpl.dataset.icon;
+            selectedWsColor = tpl.dataset.color;
+            if (wsColorCustom) wsColorCustom.value = selectedWsColor;
+            document.querySelectorAll('.ws-color-chip').forEach(c => c.classList.toggle('active', c.dataset.color === selectedWsColor));
+            document.querySelectorAll('#ws-icon-selector .icon-option').forEach(i => i.classList.toggle('active', i.dataset.icon === selectedWsIcon));
+            updateWsPreview();
         };
     });
-
-    // Gestion des templates personnalisés
-    const wsCustomTemplatesContainer = document.getElementById('ws-custom-templates');
-    const wsCustomTemplatesGroup = document.getElementById('ws-custom-templates-group');
-
-    const loadAndRenderCustomTemplates = async () => {
-        if (!wsCustomTemplatesContainer) return;
-        try {
-            const settings = await window.domusAPI.getSettings();
-            const customTpls = settings.customWorkspaceTemplates || [];
-            
-            if (customTpls.length === 0) {
-                if (wsCustomTemplatesGroup) wsCustomTemplatesGroup.style.display = 'none';
-                wsCustomTemplatesContainer.innerHTML = '';
-                return;
-            }
-            
-            if (wsCustomTemplatesGroup) wsCustomTemplatesGroup.style.display = 'block';
-            wsCustomTemplatesContainer.innerHTML = '';
-            
-            customTpls.forEach((tpl, index) => {
-                const btn = document.createElement('button');
-                btn.className = 'ws-tpl';
-                // Stocker les infos dans des attributs pour correspondre aux statiques
-                btn.dataset.name = tpl.name;
-                btn.dataset.icon = tpl.icon;
-                btn.dataset.color = tpl.color;
-                
-                btn.innerHTML = `${tpl.icon} ${tpl.name} <span class="ws-tpl-del" data-index="${index}" title="Supprimer">×</span>`;
-                
-                btn.onclick = (e) => {
-                    if (e.target.classList.contains('ws-tpl-del')) {
-                        e.stopPropagation();
-                        deleteCustomTemplate(index);
-                        return;
-                    }
-                    applyTemplate(tpl.name, tpl.icon, tpl.color);
-                };
-                
-                wsCustomTemplatesContainer.appendChild(btn);
-            });
-        } catch (err) {
-            console.error("[DOMUS] Impossible de charger les templates personnalisés :", err.message);
-        }
-    };
-
-    const deleteCustomTemplate = async (index) => {
-        try {
-            const settings = await window.domusAPI.getSettings();
-            if (settings.customWorkspaceTemplates) {
-                const deleted = settings.customWorkspaceTemplates.splice(index, 1)[0];
-                await window.domusAPI.saveSettings(settings);
-                showDomusToast(`🗑️ Template "${deleted.name}" supprimé !`);
-                loadAndRenderCustomTemplates();
-            }
-        } catch (err) {
-            console.error("[DOMUS] Échec de la suppression du template :", err.message);
-        }
-    };
-
-    const btnSaveWsTemplate = document.getElementById('btn-save-ws-template');
-    if (btnSaveWsTemplate) {
-        btnSaveWsTemplate.onclick = async () => {
-            const name = wsNameInput ? wsNameInput.value.trim() : '';
-            if (!name) {
-                showDomusToast("⚠️ Saisissez un nom pour votre template.");
-                if (wsNameInput) wsNameInput.focus();
-                return;
-            }
-            
-            try {
-                const settings = await window.domusAPI.getSettings();
-                if (!settings.customWorkspaceTemplates) {
-                    settings.customWorkspaceTemplates = [];
-                }
-                
-                const existsIdx = settings.customWorkspaceTemplates.findIndex(t => t.name.toLowerCase() === name.toLowerCase());
-                const newTpl = { name, icon: selectedWsIcon, color: selectedWsColor };
-                
-                if (existsIdx !== -1) {
-                    settings.customWorkspaceTemplates[existsIdx] = newTpl;
-                    showDomusToast(`⭐ Template "${name}" mis à jour !`);
-                } else {
-                    settings.customWorkspaceTemplates.push(newTpl);
-                    showDomusToast(`⭐ Template "${name}" enregistré !`);
-                }
-                
-                await window.domusAPI.saveSettings(settings);
-                loadAndRenderCustomTemplates();
-            } catch (err) {
-                console.error("[DOMUS] Échec de l'enregistrement du template :", err.message);
-            }
-        };
-    }
 
     if (btnConfirmCreateWs) {
         btnConfirmCreateWs.onclick = () => {

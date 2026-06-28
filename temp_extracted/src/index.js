@@ -16,41 +16,16 @@ const UPDATE_STAGING_DIR = path.join(
     process.env.APPDATA || path.join(require('os').homedir(), 'AppData', 'Roaming'),
     'DomusPro'
 );
-
-// Double mode : app.asar (complet) ou main.jsc (partiel pour rétrocompatibilité)
-const updateAsarPath  = path.join(UPDATE_STAGING_DIR, 'app.asar.update');
-const appDataAsarPath = path.join(UPDATE_STAGING_DIR, 'app.asar');
-
 const updatePath      = path.join(UPDATE_STAGING_DIR, 'main.jsc.update');
-const appDataJscPath  = path.join(UPDATE_STAGING_DIR, 'main.jsc');
-
 const updateMetaPath  = path.join(UPDATE_STAGING_DIR, 'metadata.json.update');
+const appDataJscPath  = path.join(UPDATE_STAGING_DIR, 'main.jsc');
 const appDataMetaPath = path.join(UPDATE_STAGING_DIR, 'metadata.json');
 const updateFlagPath  = path.join(UPDATE_STAGING_DIR, 'just-updated.flag');
 
-// Si une mise à jour ASAR ou JSC est en attente, on la swap
-if (fs.existsSync(updateAsarPath)) {
+// Si une mise à jour est en attente, on la swap dans le dossier utilisateur AppData (writable !)
+if (fs.existsSync(updatePath)) {
     try {
-        console.log("[DOMUS] Application d'une mise à jour ASAR complète dans AppData...");
-        if (fs.existsSync(appDataAsarPath)) fs.unlinkSync(appDataAsarPath);
-        fs.renameSync(updateAsarPath, appDataAsarPath);
-        
-        // Nettoyer l'ancien format partiel s'il existe pour éviter tout conflit
-        if (fs.existsSync(appDataJscPath)) fs.unlinkSync(appDataJscPath);
-        
-        if (fs.existsSync(updateMetaPath)) {
-            if (fs.existsSync(appDataMetaPath)) fs.unlinkSync(appDataMetaPath);
-            fs.renameSync(updateMetaPath, appDataMetaPath);
-        }
-        
-        fs.writeFileSync(updateFlagPath, JSON.stringify({ updatedAt: new Date().toISOString() }));
-        console.log("[DOMUS] Mise à jour ASAR installée avec succès.");
-    } catch (err) {
-        console.error("[DOMUS] Échec de l'application de la mise à jour ASAR :", err.message);
-    }
-} else if (fs.existsSync(updatePath)) {
-    try {
-        console.log("[DOMUS] Application d'une mise à jour JSC partielle dans AppData...");
+        console.log("[DOMUS] Application d'une mise à jour système dans AppData...");
         if (fs.existsSync(appDataJscPath)) fs.unlinkSync(appDataJscPath);
         fs.renameSync(updatePath, appDataJscPath);
         
@@ -59,10 +34,11 @@ if (fs.existsSync(updateAsarPath)) {
             fs.renameSync(updateMetaPath, appDataMetaPath);
         }
         
+        // 🏁 Écrire le drapeau "vient d'être mis à jour" pour afficher le toast au démarrage
         fs.writeFileSync(updateFlagPath, JSON.stringify({ updatedAt: new Date().toISOString() }));
-        console.log("[DOMUS] Mise à jour JSC installée avec succès.");
+        console.log("[DOMUS] Mise à jour installée avec succès dans AppData.");
     } catch (err) {
-        console.error("[DOMUS] Échec de l'application de la mise à jour JSC :", err.message);
+        console.error("[DOMUS] Échec de l'application de la mise à jour :", err.message);
     }
 }
 
@@ -96,10 +72,8 @@ if (fs.existsSync(appDataMetaPath)) {
 if (compareVersions(bundledVersion, appDataVersion) >= 0) {
     console.log(`[DOMUS] Version physique installée (${bundledVersion}) plus récente ou égale à l'update cache (${appDataVersion}). Nettoyage d'AppData...`);
     try {
-        if (fs.existsSync(appDataAsarPath)) fs.unlinkSync(appDataAsarPath);
         if (fs.existsSync(appDataJscPath)) fs.unlinkSync(appDataJscPath);
         if (fs.existsSync(appDataMetaPath)) fs.unlinkSync(appDataMetaPath);
-        if (fs.existsSync(updateAsarPath)) fs.unlinkSync(updateAsarPath);
         if (fs.existsSync(updatePath)) fs.unlinkSync(updatePath);
         if (fs.existsSync(updateMetaPath)) fs.unlinkSync(updateMetaPath);
     } catch (err) {
@@ -107,23 +81,13 @@ if (compareVersions(bundledVersion, appDataVersion) >= 0) {
     }
 }
 
-// Déterminer quel binaire charger (priorité à l'app.asar complet, puis main.jsc, puis bundled)
+// Déterminer quel binaire charger (priorité à la version AppData mise à jour, sinon la version bundled d'origine)
 let activeJscPath = null;
-let activeDirname = __dirname;
-
-const appDataAsarJscPath = path.join(appDataAsarPath, 'src', 'main.jsc');
-
-if (fs.existsSync(appDataAsarPath) && fs.existsSync(appDataAsarJscPath)) {
-    activeJscPath = appDataAsarJscPath;
-    activeDirname = path.join(appDataAsarPath, 'src');
-    console.log("[DOMUS] Utilisation de l'application complète mise à jour dans AppData (app.asar).");
-} else if (fs.existsSync(appDataJscPath)) {
+if (fs.existsSync(appDataJscPath)) {
     activeJscPath = appDataJscPath;
-    activeDirname = __dirname;
-    console.log("[DOMUS] Utilisation du binaire de mise à jour partiel dans AppData (main.jsc).");
+    console.log("[DOMUS] Utilisation du binaire de mise à jour dans AppData.");
 } else if (fs.existsSync(bundledJscPath)) {
     activeJscPath = bundledJscPath;
-    activeDirname = __dirname;
     console.log("[DOMUS] Utilisation du binaire d'origine (bundled).");
 }
 
@@ -133,21 +97,22 @@ if (activeJscPath) {
         // Charger le bytecode compilé du binaire actif
         const fn = loadBytecode(activeJscPath);
         
-        // Simuler le module Node.js en utilisant les chemins d'origine (bundled) ou d'update (activeDirname)
+        // Simuler le module Node.js en utilisant les chemins d'origine (bundled)
+        // pour préserver la résolution relative des fichiers statiques et assets d'app.asar
         const m = {
             exports: {},
             require: require,
-            id: activeJscPath,
-            filename: activeJscPath,
+            id: bundledJscPath,
+            filename: bundledJscPath,
             loaded: false,
             parent: module,
             children: []
         };
         
         const requireProxy = function(id) {
-            // Si require relatif, on le résout par rapport au dossier actif (update ou bundled)
+            // Si require relatif (ex: ./security), on le résout par rapport au dossier bundled d'origine !
             if (id.startsWith('.')) {
-                const resolved = path.resolve(activeDirname, id);
+                const resolved = path.resolve(__dirname, id);
                 return require(resolved);
             }
             return require(id);
@@ -158,8 +123,8 @@ if (activeJscPath) {
         requireProxy.extensions = require.extensions;
         requireProxy.cache = require.cache;
         
-        // Exécution du bytecode en lui passant l'activeDirname (pour charger les assets et HTML associés)
-        fn(m.exports, requireProxy, m, activeJscPath, activeDirname);
+        // Exécution du bytecode en lui passant l'ancien __dirname
+        fn(m.exports, requireProxy, m, bundledJscPath, __dirname);
         m.loaded = true;
         module.exports = m.exports;
         

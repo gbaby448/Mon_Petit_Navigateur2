@@ -18,6 +18,7 @@ const UPDATE_STAGING_DIR = path.join(
     process.env.APPDATA || path.join(require('os').homedir(), 'AppData', 'Roaming'),
     'DomusPro'
 );
+const UPDATE_DEST = path.join(UPDATE_STAGING_DIR, 'main.jsc.update');
 
 // S'assurer que le dossier de staging existe
 if (!require('fs').existsSync(UPDATE_STAGING_DIR)) {
@@ -92,30 +93,19 @@ class DomusUpdater {
                             return resolve({ status: 'up-to-date', version: localVersion });
                         }
 
-                        // Chercher l'archive complète app.asar d'abord, puis main.jsc en secours
-                        let asset = (release.assets || []).find(a => a.name === 'app.asar');
-                        let isAsar = true;
-                        
+                        // Chercher le fichier main.jsc dans les assets de la release
+                        const asset = (release.assets || []).find(a => a.name === 'main.jsc');
                         if (!asset) {
-                            asset = (release.assets || []).find(a => a.name === 'main.jsc');
-                            isAsar = false;
+                            console.warn('[DOMUS Updater] La release GitHub ne contient pas de fichier main.jsc.');
+                            return resolve({ status: 'error', message: 'Fichier main.jsc absent de la release GitHub.' });
                         }
 
-                        if (!asset) {
-                            console.warn('[DOMUS Updater] La release GitHub ne contient ni app.asar ni main.jsc.');
-                            return resolve({ status: 'error', message: 'Fichier de mise à jour absent de la release GitHub.' });
-                        }
-
-                        console.log(`[DOMUS Updater] Nouvelle version v${remoteVersion} disponible ! Téléchargement de ${asset.name}...`);
+                        console.log(`[DOMUS Updater] Nouvelle version v${remoteVersion} disponible ! Téléchargement...`);
 
                         // Notifier l'UI que le téléchargement commence
                         this._sendToast(`⬇️ Mise à jour v${remoteVersion} en cours de téléchargement...`);
 
-                        const destPath = isAsar ? 
-                            path.join(UPDATE_STAGING_DIR, 'app.asar.update') : 
-                            path.join(UPDATE_STAGING_DIR, 'main.jsc.update');
-
-                        this._download(asset.browser_download_url, remoteVersion, destPath, resolve);
+                        this._download(asset.browser_download_url, remoteVersion, resolve);
 
                     } catch (e) {
                         console.error('[DOMUS Updater] Erreur de parsing JSON GitHub :', e.message);
@@ -137,21 +127,21 @@ class DomusUpdater {
     /**
      * Télécharge le binaire de mise à jour depuis GitHub Releases.
      */
-    _download(url, newVersion, destPath, resolve) {
+    _download(url, newVersion, resolve) {
         const req = net.request({ url, headers: { 'User-Agent': `DomusBrowser/${this.appVersion}` } });
 
         req.on('response', (response) => {
             // GitHub redirige vers son CDN - gérer la redirection manuellement si nécessaire
             if (response.statusCode === 302 || response.statusCode === 301) {
                 const redirectUrl = response.headers['location'];
-                if (redirectUrl) return this._downloadDirect(redirectUrl, newVersion, destPath, resolve);
+                if (redirectUrl) return this._downloadDirect(redirectUrl, newVersion, resolve);
             }
 
             const chunks = [];
             response.on('data', (chunk) => chunks.push(chunk));
             response.on('end', () => {
                 try {
-                    fs.writeFileSync(destPath, Buffer.concat(chunks));
+                    fs.writeFileSync(UPDATE_DEST, Buffer.concat(chunks));
                     
                     const metadataPath = path.join(UPDATE_STAGING_DIR, 'metadata.json.update');
                     fs.writeFileSync(metadataPath, JSON.stringify({ version: newVersion }));
@@ -178,9 +168,9 @@ class DomusUpdater {
     /**
      * Téléchargement direct depuis une URL CDN (après redirection GitHub).
      */
-    _downloadDirect(url, newVersion, destPath, resolve) {
+    _downloadDirect(url, newVersion, resolve) {
         const https = require('https');
-        const file = fs.createWriteStream(destPath);
+        const file = fs.createWriteStream(UPDATE_DEST);
 
         https.get(url, (res) => {
             res.pipe(file);
@@ -199,7 +189,7 @@ class DomusUpdater {
                 });
             });
         }).on('error', (err) => {
-            fs.unlink(destPath, () => {});
+            fs.unlink(UPDATE_DEST, () => {});
             console.error('[DOMUS Updater] Erreur CDN :', err.message);
             resolve({ status: 'error', message: 'Erreur lors du téléchargement CDN.' });
         });

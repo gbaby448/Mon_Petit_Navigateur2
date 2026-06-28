@@ -2727,31 +2727,12 @@ body.cinema-mode .main-content {
 .ws-input::placeholder { color: rgba(255,255,255,0.2); }
 
 /* Templates */
-.ws-templates-container {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-.ws-templates-group {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-.ws-sub-label {
-    display: block;
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: rgba(255, 255, 255, 0.4);
-    margin-bottom: 2px;
-}
 .ws-templates {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
 }
 .ws-tpl {
-    position: relative;
     background: rgba(255,255,255,0.04);
     border: 1px solid rgba(255,255,255,0.08);
     border-radius: 20px;
@@ -2760,55 +2741,11 @@ body.cinema-mode .main-content {
     padding: 5px 12px;
     cursor: pointer;
     transition: all 0.2s;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-}
-.ws-tpl:has(.ws-tpl-del) {
-    padding-right: 24px;
 }
 .ws-tpl:hover {
     background: rgba(255,255,255,0.1);
     color: #fff;
     border-color: rgba(255,255,255,0.2);
-    transform: translateY(-1px);
-}
-.ws-tpl-del {
-    position: absolute;
-    right: 6px;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.4);
-    cursor: pointer;
-    transition: color 0.2s;
-    line-height: 1;
-}
-.ws-tpl-del:hover {
-    color: #ff4444;
-}
-
-.ws-btn-save-tpl {
-    background: rgba(0, 255, 136, 0.08);
-    border: 1px dashed rgba(0, 255, 136, 0.3);
-    border-radius: 8px;
-    color: #00ff88;
-    font-size: 11px;
-    font-weight: 500;
-    padding: 8px 12px;
-    cursor: pointer;
-    width: 100%;
-    margin-top: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    transition: all 0.2s;
-    outline: none;
-}
-.ws-btn-save-tpl:hover {
-    background: rgba(0, 255, 136, 0.15);
-    border-color: #00ff88;
     transform: translateY(-1px);
 }
 

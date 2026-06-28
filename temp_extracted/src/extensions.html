@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data: https:;">
+    <title>Extensions - Domus Browser</title>
+    <style>
+        :root {
+            --bg-dark: #050506;
+            --bg-panel: #0d0d10;
+            --bg-card: #14141a;
+            --accent: #00ff88;
+            --accent-glow: rgba(0, 255, 136, 0.15);
+            --text-main: #ffffff;
+            --text-dim: #8e8e93;
+            --border: rgba(255, 255, 255, 0.08);
+            --danger: #ff3b30;
+            --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            --max-content-width: 1000px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        /* --- STICKY HEADER --- */
+        header {
+            background: rgba(13, 13, 16, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            padding: 25px 5%;
+            display: flex;
+            justify-content: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            width: 100%;
+            max-width: var(--max-content-width);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .title-area {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+
+        .icon-title {
+            font-size: 2.2rem;
+        }
+
+        /* --- ZONE DE CONTENU principal --- */
+        main {
+            flex: 1;
+            overflow-y: auto;
+            padding: 30px 5% 80px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        main::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        main::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        main::-webkit-scrollbar-thumb {
+            background: #333;
+            border-radius: 4px;
+        }
+
+        main::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        .content-container {
+            width: 100%;
+            max-width: var(--max-content-width);
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        /* --- BLOC D'INSTALLATION (STORE / DOSSIER) --- */
+        .install-panel {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+
+        @media (max-width: 768px) {
+            .install-panel {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .install-section {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .install-section h3 {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .install-section p {
+            font-size: 0.85rem;
+            color: var(--text-dim);
+            line-height: 1.4;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 5px;
+        }
+
+        .input-row input {
+            flex: 1;
+            background: var(--bg-dark);
+            border: 1px solid var(--border);
+            color: white;
+            padding: 12px 15px;
+            border-radius: 10px;
+            outline: none;
+            font-size: 0.9rem;
+            transition: var(--transition);
+        }
+
+        .input-row input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        .btn {
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: var(--transition);
+            background: var(--accent);
+            color: #050506;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px var(--accent-glow);
+            filter: brightness(1.1);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn.secondary {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            color: white;
+        }
+
+        .btn.secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+            box-shadow: none;
+        }
+
+        /* --- LOADER / NOTIFICATION SYSTEM --- */
+        .toast {
+            position: fixed;
+            bottom: 25px;
+            right: 25px;
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            padding: 15px 25px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 1000;
+            font-size: 0.9rem;
+            max-width: 350px;
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .toast.success {
+            border-left: 4px solid var(--accent);
+        }
+
+        .toast.error {
+            border-left: 4px solid var(--danger);
+        }
+
+        /* Spinner pour le loading d'installation */
+        .spinner {
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(0, 0, 0, 0.1);
+            border-top: 2px solid #050506;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            display: none;
+        }
+
+        .btn.loading .spinner {
+            display: inline-block;
+        }
+
+        .btn.loading span {
+            display: none;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* --- LISTE DES EXTENSIONS (GRID) --- */
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 10px;
+            margin-top: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .extension-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .extension-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 15px;
+            transition: var(--transition);
+            position: relative;
+        }
+
+        .extension-card:hover {
+            border-color: var(--accent);
+            box-shadow: 0 8px 24px rgba(0, 255, 136, 0.05);
+            transform: translateY(-2px);
+        }
+
+        .ext-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+        }
+
+        .ext-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            object-fit: contain;
+        }
+
+        .ext-title-group {
+            flex: 1;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .ext-name {
+            font-weight: 700;
+            font-size: 1rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .ext-meta {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .ext-badge {
+            background: rgba(255, 255, 255, 0.06);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+        }
+
+        .ext-badge.local {
+            background: rgba(0, 255, 136, 0.1);
+            color: var(--accent);
+        }
+
+        .ext-desc {
+            font-size: 0.82rem;
+            color: var(--text-dim);
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            min-height: 52px;
+        }
+
+        .ext-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid var(--border);
+            padding-top: 15px;
+            margin-top: 5px;
+        }
+
+        /* --- BOUTON OPTIONS & ACTIONS --- */
+        .ext-actions-left {
+            display: flex;
+            gap: 10px;
+        }
+
+        .action-icon-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-dim);
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 8px;
+            transition: var(--transition);
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .action-icon-btn:hover {
+            background: rgba(255, 255, 255, 0.06);
+            color: white;
+        }
+
+        .action-icon-btn.delete:hover {
+            background: rgba(255, 59, 48, 0.12);
+            color: var(--danger);
+        }
+
+        .btn-options {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border);
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: white;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .btn-options:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255,255,255,0.2);
+        }
+
+        /* --- STYLED CUSTOM SWITCH (TOGGLE ACTIVE) --- */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 42px;
+            height: 22px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--border);
+            transition: var(--transition);
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 14px;
+            width: 14px;
+            left: 3px;
+            bottom: 3px;
+            background-color: var(--text-dim);
+            transition: var(--transition);
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--accent);
+            border-color: var(--accent);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(20px);
+            background-color: #050506;
+        }
+
+        /* --- CATALOGUE / STORE --- */
+        .catalog-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+        .catalog-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .catalog-header h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .catalog-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 18px;
+        }
+        .catalog-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 12px;
+            transition: var(--transition);
+        }
+        .catalog-card:hover {
+            border-color: var(--accent);
+            box-shadow: 0 4px 16px rgba(0, 255, 136, 0.05);
+            transform: translateY(-2px);
+        }
+        .catalog-top {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        .catalog-icon {
+            font-size: 1.8rem;
+            width: 42px;
+            height: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+        .catalog-title-group {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .catalog-name {
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: white;
+        }
+        .catalog-author {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+        }
+        .catalog-desc {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            line-height: 1.35;
+            min-height: 48px;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* --- EMPTY STATE --- */
+        .empty-state {
+            grid-column: 1 / -1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 80px 20px;
+            text-align: center;
+            opacity: 0.5;
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+        }
+
+        .empty-state-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+
+        .empty-state h3 {
+            font-size: 1.2rem;
+            margin-bottom: 8px;
+        }
+
+    </style>
+</head>
+
+<body>
+ 
+    <header>
+        <div class="header-content">
+            <div class="title-area">
+                <span class="icon-title">🧩</span>
+                <h1>Extensions Domus Engine</h1>
+            </div>
+            <div class="header-actions" style="display: flex; gap: 10px;">
+                <button class="btn secondary" id="btn-open-cws" style="border-color: #4285f4; color: #4285f4; background: rgba(66, 133, 244, 0.05); font-weight: 700;">
+                    🌐 Ouvrir Chrome Web Store
+                </button>
+                <button class="btn secondary" id="btn-devmode-info">Developer Mode : ON</button>
+            </div>
+        </div>
+    </header>
+ 
+    <main>
+        <div class="content-container">
+            <!-- PANEL D'INSTALLATION -->
+            <div class="install-panel">
+                <!-- Section Chrome Web Store -->
+                <div class="install-section">
+                    <h3>Chrome Web Store</h3>
+                    <p>Entrez l'identifiant (32 caractères) ou collez directement l'URL d'une extension de la boutique Chrome pour l'intégrer.</p>
+                    <div class="input-row">
+                        <input type="text" id="cws-input" placeholder="ID (ex: cjpalhdln...) ou URL de l'extension">
+                        <button class="btn" id="btn-install-cws">
+                            <div class="spinner"></div>
+                            <span>Installer</span>
+                        </button>
+                    </div>
+                </div>
+ 
+                <!-- Section Extension Locale -->
+                <div class="install-section" style="justify-content: space-between;">
+                    <div>
+                        <h3>Extension non empaquetée</h3>
+                        <p>Développeurs, chargez directement un dossier contenant un fichier <code>manifest.json</code> pour tester votre code.</p>
+                    </div>
+                    <button class="btn secondary" id="btn-install-local" style="width: 100%; margin-top: 10px;">
+                        <span>📂 Sélectionner un dossier</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- CATALOGUE RECOMMANDÉ -->
+            <div class="catalog-container">
+                <div class="catalog-header">
+                    <h3>Bibliothèque d'Extensions Domus</h3>
+                    <p style="font-size: 0.85rem; color: var(--text-dim); margin: 0;">Sélection d'outils optimisés à installer en un clic.</p>
+                </div>
+                <div class="catalog-grid" id="catalog-list">
+                    <!-- Les extensions recommandées -->
+                    <div class="catalog-card" data-id="cjpalhdlnbpafiamejdnhcphjbkeiame">
+                        <div class="catalog-top">
+                            <span class="catalog-icon">🛡️</span>
+                            <div class="catalog-title-group">
+                                <span class="catalog-name">uBlock Origin</span>
+                                <span class="catalog-author">Par Raymond Hill</span>
+                            </div>
+                        </div>
+                        <p class="catalog-desc">Un bloqueur de pub rapide, efficace et économe en mémoire RAM. Bloque les traqueurs et publicités nuisibles.</p>
+                        <button class="btn btn-catalog-install" onclick="installFromCatalog('cjpalhdlnbpafiamejdnhcphjbkeiame', this)">Installer</button>
+                    </div>
+                    <div class="catalog-card" data-id="eimadpcaljkjehhjcbhgahfgjphggjbd">
+                        <div class="catalog-top">
+                            <span class="catalog-icon">🌙</span>
+                            <div class="catalog-title-group">
+                                <span class="catalog-name">Dark Reader</span>
+                                <span class="catalog-author">Par darkreader.org</span>
+                            </div>
+                        </div>
+                        <p class="catalog-desc">Mode sombre automatique pour tous les sites web. Protégez vos yeux en appliquant des thèmes sombres et élégants.</p>
+                        <button class="btn btn-catalog-install" onclick="installFromCatalog('eimadpcaljkjehhjcbhgahfgjphggjbd', this)">Installer</button>
+                    </div>
+                    <div class="catalog-card" data-id="aapocclgdofooolggaplbeecnnagdfga">
+                        <div class="catalog-top">
+                            <span class="catalog-icon">🌐</span>
+                            <div class="catalog-title-group">
+                                <span class="catalog-name">Google Traduction</span>
+                                <span class="catalog-author">Par Google</span>
+                            </div>
+                        </div>
+                        <p class="catalog-desc">Traduisez instantanément des mots, des phrases ou des pages web entières dans plus de 100 langues.</p>
+                        <button class="btn btn-catalog-install" onclick="installFromCatalog('aapocclgdofooolggaplbeecnnagdfga', this)">Installer</button>
+                    </div>
+                    <div class="catalog-card" data-id="mnjooaebdmacjoecanknpolhgpaedmbc">
+                        <div class="catalog-top">
+                            <span class="catalog-icon">🎬</span>
+                            <div class="catalog-title-group">
+                                <span class="catalog-name">SponsorBlock</span>
+                                <span class="catalog-author">Par ajay.app</span>
+                            </div>
+                        </div>
+                        <p class="catalog-desc">Passez automatiquement les segments sponsorisés, intros, rappels d'abonnement et intermèdes sur YouTube.</p>
+                        <button class="btn btn-catalog-install" onclick="installFromCatalog('mnjooaebdmacjoecanknpolhgpaedmbc', this)">Installer</button>
+                    </div>
+                    <div class="catalog-card" data-id="dhdgffkkebhmkfjojejmpbldmpobfkfo">
+                        <div class="catalog-top">
+                            <span class="catalog-icon">🐒</span>
+                            <div class="catalog-title-group">
+                                <span class="catalog-name">Tampermonkey</span>
+                                <span class="catalog-author">Par Jan Biniok</span>
+                            </div>
+                        </div>
+                        <p class="catalog-desc">Le gestionnaire d'userscripts le plus populaire pour personnaliser l'affichage et les fonctionnalités des sites web.</p>
+                        <button class="btn btn-catalog-install" onclick="installFromCatalog('dhdgffkkebhmkfjojejmpbldmpobfkfo', this)">Installer</button>
+                    </div>
+                    <div class="catalog-card" data-id="nngceckbapebfimnlniiiahkcoobdackm">
+                        <div class="catalog-top">
+                            <span class="catalog-icon">🔑</span>
+                            <div class="catalog-title-group">
+                                <span class="catalog-name">Bitwarden</span>
+                                <span class="catalog-author">Par Bitwarden</span>
+                            </div>
+                        </div>
+                        <p class="catalog-desc">Un gestionnaire de mots de passe open-source sécurisé pour synchroniser vos identifiants sur tous vos appareils.</p>
+                        <button class="btn btn-catalog-install" onclick="installFromCatalog('nngceckbapebfimnlniiiahkcoobdackm', this)">Installer</button>
+                    </div>
+                </div>
+            </div>
+ 
+            <!-- LISTE DES EXTENSIONS -->
+            <div class="section-title">
+                <span>Extensions installées</span>
+                <span id="extensions-count" style="font-size: 0.85rem; color: var(--accent);">0 active(s)</span>
+            </div>
+      </div>
+
+            <div class="extension-grid" id="extensions-list">
+                <!-- Les cartes d'extensions seront injectées ici dynamiquement -->
+                <div class="empty-state">
+                    <div class="empty-state-icon">🧩</div>
+                    <h3>Aucune extension installée</h3>
+                    <p>Découvrez la puissance de Domus Pro en y intégrant vos outils favoris.</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- TOAST NOTIFICATIONS -->
+    <div class="toast" id="toast-notify">
+        <span id="toast-text">Message</span>
+    </div>
+
+    <script>
+        const grid = document.getElementById('extensions-list');
+        const cwsInput = document.getElementById('cws-input');
+        const btnInstallCws = document.getElementById('btn-install-cws');
+        const btnInstallLocal = document.getElementById('btn-install-local');
+        const extCount = document.getElementById('extensions-count');
+        const toast = document.getElementById('toast-notify');
+        const toastText = document.getElementById('toast-text');
+
+        let extensionsData = [];
+
+        // Toast Helper
+        function showToast(text, type = 'success') {
+            toastText.textContent = text;
+            toast.className = `toast show ${type}`;
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3500);
+        }
+
+        // --- RENDER FUNCTION ---
+        function renderExtensions(extensions) {
+            grid.innerHTML = '';
+            extensionsData = extensions;
+            
+            const activeCount = extensions.filter(e => e.active).length;
+            extCount.textContent = `${activeCount} active(s) / ${extensions.length} au total`;
+
+            if (extensions.length === 0) {
+                grid.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🧩</div>
+                        <h3>Aucune extension installée</h3>
+                        <p>Découvrez la puissance de Domus Pro en y intégrant vos outils favoris.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            extensions.forEach(ext => {
+                const card = document.createElement('div');
+                card.className = 'extension-card';
+                
+                const iconHTML = ext.icon 
+                    ? `<img class="ext-icon" src="${ext.icon}">` 
+                    : `<div class="ext-icon">🧩</div>`;
+
+                const badgeClass = ext.isLocal ? 'ext-badge local' : 'ext-badge';
+                const badgeText = ext.isLocal ? 'Locale' : 'Chrome Web Store';
+
+                // Si l'extension a une page d'options, on affiche le bouton
+                const optionsBtnHTML = ext.optionsPage 
+                    ? `<button class="btn-options" onclick="openOptions('${ext.id}', '${ext.optionsPage}')">Options</button>` 
+                    : '';
+
+                card.innerHTML = `
+                    <div class="ext-header">
+                        ${iconHTML}
+                        <div class="ext-title-group">
+                            <div class="ext-name" title="${ext.name}">${ext.name}</div>
+                            <div class="ext-meta">
+                                <span>v${ext.version}</span>
+                                <span class="${badgeClass}">${badgeText}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="ext-desc" title="${ext.description || 'Aucune description fournie.'}">
+                        ${ext.description || 'Aucune description fournie.'}
+                    </div>
+                    <div class="ext-footer">
+                        <div class="ext-actions-left">
+                            ${optionsBtnHTML}
+                            <button class="action-icon-btn delete" onclick="deleteExt('${ext.id}')" title="Désinstaller l'extension">🗑️</button>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" ${ext.active ? 'checked' : ''} onchange="toggleExt('${ext.id}', this.checked)">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+
+            // Mettre à jour les boutons du catalogue
+            updateCatalogButtons(extensions);
+        }
+
+        // --- METTRE À JOUR LES BOUTONS DU CATALOGUE DE LA BIBLIOTHÈQUE ---
+        function updateCatalogButtons(installedExtensions) {
+            const installedIds = installedExtensions.map(ext => ext.id);
+            const catalogCards = document.querySelectorAll('.catalog-card');
+            
+            catalogCards.forEach(card => {
+                const extId = card.getAttribute('data-id');
+                const btn = card.querySelector('.btn-catalog-install');
+                
+                if (btn) {
+                    if (installedIds.includes(extId)) {
+                        btn.innerHTML = '<span>Installée ✅</span>';
+                        btn.disabled = true;
+                        btn.style.background = 'rgba(255, 255, 255, 0.05)';
+                        btn.style.color = 'var(--accent)';
+                        btn.style.borderColor = 'var(--border)';
+                        btn.style.cursor = 'default';
+                        btn.style.boxShadow = 'none';
+                        btn.style.transform = 'none';
+                    } else {
+                        btn.innerHTML = '<span>Installer</span>';
+                        btn.disabled = false;
+                        btn.style.background = 'var(--accent)';
+                        btn.style.color = '#050506';
+                        btn.style.borderColor = 'transparent';
+                        btn.style.cursor = 'pointer';
+                    }
+                }
+            });
+        }
+
+        // --- ACTION CATALOGUE ---
+        window.installFromCatalog = async (id, btn) => {
+            if (btn.disabled) return;
+            
+            btn.disabled = true;
+            btn.innerHTML = '<div class="spinner" style="display:inline-block; border-top-color:#050506; border-left-color:transparent; margin-right:5px;"></div><span>Installation...</span>';
+            
+            try {
+                if (window.domusAPI && window.domusAPI.installExtensionFromCWS) {
+                    const result = await window.domusAPI.installExtensionFromCWS(id);
+                    if (result.success) {
+                        showToast(`Extension "${result.extension.name}" installée avec succès !`);
+                        loadExtensions();
+                    } else {
+                        showToast("Échec : " + result.error, "error");
+                        loadExtensions(); // Restaurer l'état
+                    }
+                } else {
+                    showToast("API système non disponible", "error");
+                    loadExtensions();
+                }
+            } catch (err) {
+                showToast("Erreur inattendue : " + err.message, "error");
+                loadExtensions();
+            }
+        };
+
+        // Bouton d'ouverture du Chrome Web Store externe
+        const btnOpenCws = document.getElementById('btn-open-cws');
+        if (btnOpenCws) {
+            btnOpenCws.addEventListener('click', () => {
+                if (window.domusAPI && window.domusAPI.newTab) {
+                    window.domusAPI.newTab("https://chromewebstore.google.com");
+                } else {
+                    showToast("API newTab non disponible", "error");
+                }
+            });
+        }
+
+        // --- ACTIONS ---
+        
+        // Charger la liste au démarrage
+        async function loadExtensions() {
+            if (window.domusAPI && window.domusAPI.getExtensions) {
+                const list = await window.domusAPI.getExtensions();
+                renderExtensions(list);
+            }
+        }
+
+        // Toggle activation
+        window.toggleExt = async (id, active) => {
+            if (window.domusAPI && window.domusAPI.toggleExtension) {
+                const result = await window.domusAPI.toggleExtension(id, active);
+                if (result.success) {
+                    showToast(active ? "Extension activée avec succès !" : "Extension désactivée !");
+                    // Recharger silencieusement pour mettre à jour les nombres
+                    const list = await window.domusAPI.getExtensions();
+                    extensionsData = list;
+                    const activeCount = list.filter(e => e.active).length;
+                    extCount.textContent = `${activeCount} active(s) / ${list.length} au total`;
+                } else {
+                    showToast("Erreur: " + result.error, "error");
+                    loadExtensions(); // Restaurer l'UI
+                }
+            }
+        };
+
+        // Supprimer
+        window.deleteExt = async (id) => {
+            if (confirm("Êtes-vous sûr de vouloir supprimer définitivement cette extension ?")) {
+                if (window.domusAPI && window.domusAPI.deleteExtension) {
+                    const result = await window.domusAPI.deleteExtension(id);
+                    if (result.success) {
+                        showToast("Extension désinstallée !");
+                        loadExtensions();
+                    } else {
+                        showToast("Erreur: " + result.error, "error");
+                    }
+                }
+            }
+        };
+
+        // Ouvrir les options
+        window.openOptions = (id, optionsPage) => {
+            if (window.domusAPI && window.domusAPI.navigate) {
+                // Les extensions chargées utilisent l'URL standard chrome-extension://<id>/<page>
+                const url = `chrome-extension://${id}/${optionsPage}`;
+                window.domusAPI.navigate(url);
+            } else {
+                showToast("Navigation impossible dans cet environnement", "error");
+            }
+        };
+
+        // Installation depuis le Web Store
+        btnInstallCws.addEventListener('click', async () => {
+            const inputVal = cwsInput.value.trim();
+            if (!inputVal) {
+                showToast("Veuillez saisir un ID ou un lien Chrome Web Store", "error");
+                return;
+            }
+
+            btnInstallCws.classList.add('loading');
+            btnInstallCws.disabled = true;
+
+            try {
+                if (window.domusAPI && window.domusAPI.installExtensionFromCWS) {
+                    const result = await window.domusAPI.installExtensionFromCWS(inputVal);
+                    if (result.success) {
+                        showToast(`Extension "${result.extension.name}" installée avec succès !`);
+                        cwsInput.value = '';
+                        loadExtensions();
+                    } else {
+                        showToast("Échec: " + result.error, "error");
+                    }
+                } else {
+                    showToast("API système non disponible", "error");
+                }
+            } catch (err) {
+                showToast("Erreur inattendue : " + err.message, "error");
+            } finally {
+                btnInstallCws.classList.remove('loading');
+                btnInstallCws.disabled = false;
+            }
+        });
+
+        // Installation locale (Unpacked)
+        btnInstallLocal.addEventListener('click', async () => {
+            if (window.domusAPI && window.domusAPI.installExtensionFromFolder) {
+                const result = await window.domusAPI.installExtensionFromFolder();
+                if (result.success) {
+                    showToast(`Extension "${result.extension.name}" (locale) chargée !`);
+                    loadExtensions();
+                } else {
+                    if (result.error !== "Sélection annulée par l'utilisateur") {
+                        showToast("Échec: " + result.error, "error");
+                    }
+                }
+            }
+        });
+
+        // Démarrage
+        document.addEventListener('DOMContentLoaded', loadExtensions);
+    </script>
+</body>
+
+</html>

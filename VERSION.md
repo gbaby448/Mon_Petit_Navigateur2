@@ -4,6 +4,31 @@ Ce fichier trace l'évolution, le changelog et les audits fonctionnels du naviga
 
 ---
 
+## 🌟 v1.7.3 - Robustesse des MAJ & Templates de Workspace Personnalisés
+*Date de sortie : 28 juin 2026*
+
+Cette mise à jour apporte une robustesse accrue au système de mise à jour automatique tout en étendant la personnalisation dans le Workspace Studio.
+
+### 🔄 Système de mise à jour robuste (app.asar)
+- Migration complète vers des archives `app.asar` pour les mises à jour à chaud de l'application (logique et interface).
+- Résout définitivement les désynchronisations de version et les crashs de transition (ex: v1.7.1 -> v1.7.2).
+- Maintien de la rétrocompatibilité avec le format partiel `main.jsc`.
+
+### 🎨 Templates de Workspace Personnalisés & Premium
+- Enregistrement à chaud de la configuration d'un espace en tant que template réutilisable.
+- Nouvelle section "Mes Templates" dynamique dans le Workspace Studio.
+- Suppression facile des templates créés via une icône dédiée.
+- Ajout de 6 nouveaux templates premium : Multimédia, Vidéos, Réseaux Tech, Créatif, Presse et Perso.
+
+---
+
+## 🌐 v1.7.2 - Refonte Complète des Espaces de Travail
+*Date de sortie : 27 juin 2026*
+
+Mise en place d'un switcher d'espace dans la barre d'onglets, du Workspace Studio modal et des cartes glassmorphism.
+
+---
+
 ## 🚀 v1.0.1 - Moteur Acoustique HD (Version Actuelle)
 *Date de sortie : 20 mai 2026*
 

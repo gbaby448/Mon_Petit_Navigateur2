@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data: https:;">
+    <title>Centre de Contrôle - Domus Browser</title>
+    <style>
+        :root {
+            --bg-dark: #050506;
+            --bg-panel: #0d0d10;
+            --bg-card: #14141a;
+            --accent: #00ff88;
+            --text-main: #ffffff;
+            --text-dim: #8e8e93;
+            --border: rgba(255, 255, 255, 0.08);
+            --danger: #ff3b30;
+            --sidebar-width: 260px;
+            --max-content-width: 1000px;
+            --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        /* --- NAVIGATION LATERALE --- */
+        nav {
+            width: var(--sidebar-width);
+            background-color: var(--bg-panel);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            padding: 30px 0;
+            z-index: 100;
+            flex-shrink: 0;
+            overflow-y: auto;
+            scrollbar-width: none;
+        }
+
+        nav::-webkit-scrollbar {
+            display: none;
+        }
+
+        .nav-header {
+            padding: 0 25px 20px;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--text-dim);
+            font-weight: 800;
+        }
+
+        .nav-group-label {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            color: var(--accent);
+            padding: 20px 25px 10px;
+            opacity: 0.6;
+        }
+
+        .nav-item {
+            padding: 10px 25px;
+            margin: 2px 15px;
+            border-radius: 10px;
+            cursor: pointer;
+            color: var(--text-dim);
+            font-size: 0.9rem;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+        }
+
+        .nav-item:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+            color: white;
+            transform: translateX(4px);
+        }
+
+        .nav-item.active {
+            background-color: rgba(0, 255, 136, 0.12);
+            color: var(--accent);
+            font-weight: 700;
+            border: 1px solid rgba(0, 255, 136, 0.25);
+        }
+
+        /* --- ZONE DE CONTENU (RESPONSIVE ULTRAWIDE) --- */
+        main {
+            flex: 1;
+            overflow-y: auto;
+            padding: 6% 5% 150px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .settings-container {
+            width: 100%;
+            max-width: var(--max-content-width);
+        }
+
+        .section {
+            display: none;
+            animation: sectionAppear 0.4s ease-out forwards;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        @keyframes sectionAppear {
+            from {
+                opacity: 0;
+                transform: translateY(15px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h1 {
+            font-size: clamp(2rem, 4vw, 3rem);
+            font-weight: 900;
+            margin-bottom: 40px;
+            letter-spacing: -1.5px;
+        }
+
+        h2 {
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--accent);
+            margin: 50px 0 20px;
+        }
+
+        /* --- COMPOSANTS UI --- */
+        .card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .row {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+            padding: 20px 25px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .row:last-child {
+            border-bottom: none;
+        }
+
+        .row-info {
+            flex: 1 1 250px;
+            padding-right: 20px;
+        }
+
+        .row-title {
+            display: block;
+            font-weight: 600;
+            font-size: 1rem;
+            margin-bottom: 4px;
+        }
+
+        .row-desc {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--text-dim);
+            line-height: 1.5;
+        }
+
+        .row-control {
+            flex: 0 0 auto;
+        }
+
+        select,
+        input[type="text"],
+        input[type="password"] {
+            background: var(--bg-dark);
+            border: 1px solid var(--border);
+            color: white;
+            padding: 10px 14px;
+            border-radius: 8px;
+            outline: none;
+            font-size: 0.9rem;
+            min-width: 200px;
+            max-width: 100%;
+        }
+
+        select:focus,
+        input:focus {
+            border-color: var(--accent);
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 48px;
+            height: 24px;
+            flex-shrink: 0;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #2c2c2e;
+            transition: .3s;
+            border-radius: 30px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+
+        input:checked+.slider {
+            background-color: var(--accent);
+        }
+
+        input:checked+.slider:before {
+            transform: translateX(24px);
+            background-color: #000;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: var(--transition);
+            text-align: center;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: #000;
+        }
+
+        .btn-danger {
+            background: rgba(255, 59, 48, 0.15);
+            color: var(--danger);
+            border: 1px solid rgba(255, 59, 48, 0.3);
+        }
+
+        .btn-ghost {
+            background: transparent;
+            border-color: var(--border);
+            color: white;
+        }
+
+        .btn-ghost:hover {
+            background: var(--border);
+        }
+
+        .protection-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .p-card {
+            background: var(--bg-dark);
+            border: 2px solid var(--border);
+            padding: 20px 15px;
+            border-radius: 16px;
+            cursor: pointer;
+            text-align: center;
+            transition: var(--transition);
+        }
+
+        .p-card.active {
+            border-color: var(--accent);
+            background: rgba(0, 255, 136, 0.05);
+        }
+
+        .p-card h4 {
+            font-size: 1rem;
+            margin-bottom: 8px;
+        }
+
+        .p-card p {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            line-height: 1.4;
+        }
+
+        .archive-list-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .archive-item {
+            background: var(--bg-dark);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 15px 20px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .archive-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 200px;
+        }
+
+        .archive-title {
+            font-weight: 700;
+            font-size: 0.95rem;
+        }
+
+        .archive-meta {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+        }
+
+        .archive-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .color-picker {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .color-dot {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: transform 0.2s;
+        }
+
+        .color-dot.active {
+            border-color: white;
+            transform: scale(1.1);
+            box-shadow: 0 0 0 2px var(--bg-dark);
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav>
+        <div class="nav-header">DOMUS CONFIG</div>
+        <ul class="nav-list">
+            <div class="nav-group-label">Navigation</div>
+            <li class="nav-item active" data-target="general">🏠 Général</li>
+            <li class="nav-item" data-target="appearance">🎨 Apparence</li>
+            <li class="nav-item" data-target="tabs">📁 Onglets</li>
+            <li class="nav-item" data-target="search">🔍 Recherche</li>
+
+            <div class="nav-group-label">Données</div>
+            <li class="nav-item" data-target="timemachine">⌛ Time Machine</li>
+            <li class="nav-item" data-target="privacy">🛡️ Confidentialité</li>
+            <li class="nav-item" data-target="passwords">🔑 Mots de passe</li>
+            <li class="nav-item" data-target="network">🌐 Réseau</li>
+
+            <div class="nav-group-label">Système</div>
+            <li class="nav-item" data-target="extensions">🧩 Extensions</li>
+            <li class="nav-item" data-target="performance">⚡ Performance</li>
+            <li class="nav-item" data-target="developer">🛠️ Développeur</li>
+            <li class="nav-item" data-target="labs">🧪 Domus Labs</li>
+            <li class="nav-item" data-target="about" style="margin-top: 20px;">ℹ️ À propos</li>
+        </ul>
+    </nav>
+
+    <main id="settings-scroll-area">
+        <div class="settings-container">
+
+            <!-- SECTION : GÉNÉRAL -->
+            <section id="general" class="section active">
+                <h1>Général</h1>
+                <div class="card">
+                    <div class="row">
+                        <div class="row-info">
+                            <span class="row-title">Page d'accueil</span>
+                            <span class="row-desc">L'URL chargée par défaut lors de l'ouverture du navigateur.</span>
+                        </div>
+                        <div class="row-control">
+                            <input type="text" id="homePage" placeholder="domus://newtab">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="row-info">
+                            <span class="row-title">Restaurer la session</span>
+                            <span class="row-desc">Ouvrir les onglets de la session précédente au démarrage.</span>
+                        </div>
+                        <div class="row-control">
+                            <label class="switch"><input type="checkbox" id="restoreSession" checked><span
+                                    class="slider"></span></label>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION : APPARENCE -->
+            <section id="appearance" class="section">
+                <h1>Apparence</h1>
+                <h2>Thème & Couleurs</h2>
+                <div class="card">
+                    <div class="row">
+                        <div class="row-info">
+                            <span class="row-title">Mode visuel</span>
+                            <span class="row-desc">Choisissez l'ambiance globale de votre interface.</span>
+                        </div>
+                        <div class="row-control">
+                            <select id="theme">
+                                <option value="dark">Sombre Profond</option>
+                                <option value="light">Clair</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="row-info">
+                            <span class="row-title">Couleur d'accentuation</span>
+                            <span class="row-desc">La couleur principale des éléments actifs.</span>
+                        </div>
+                        <div class="row-control">
+                            <div class="color-picker">
+                                <div class="color-dot active" style="background: #00ff88;" data-color="#00ff88"></div>
+                                <div class="color-dot" style="background: #0078d4;" data-color="#0078d4"></div>
+                                <div class="color-dot" style="background: #ff0055;" data-color="#ff0055"></div>
+                                <div class="color-dot" style="background: #ffcc00;" data-color="#ffcc00"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <h2>Agencement</h2>
+                <div class="card">
+                    <div class="row">
+                        <div class="row-info">
+                            <span class="row-title">Position de la barre latérale</span>
+                            <span class="row-desc">Placez la navigation à gauche ou à droite.</span>
+                        </div>
+                        <div class="row-control">
+                            <select id="sidebarPosition">
+                                <option value="left">Gauche</option>
+                                <option value="right">Droite</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION : ONGLETS -->
+            <section id="tabs" class="section">
+                <h1>Onglets</h1>
+                <div class="card">
+                    <div class="row">
+                        <div class="row-info">
+                            <span class="row-title">Afficher les favicons</span>
+                            <span class="row-desc">Affiche les icônes des sites dans la barre d'onglets.</span>
+                        </div>
+                        <div class="row-control">
+                            <label class="switch"><input type="checkbox" id="showFavicons" checked><span
+                                    class="slider"></span></label>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="row-info">
+                            <span class="row-title">Avertir lors de la fermeture multiple</span>
+                            <span class="row-desc">Demande confirmation avant de fermer plusieurs onglets d'un
+                                coup.</span>
+                        </div>
+                        <div class="row-control">
+                            <label class="switch"><input type="checkbox" id="warnOnClose" checked><span
+                                    class="slider"></span></label>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION : RECHERCHE -->
+            <section id="search" class="section">
+                <h1>Recherche</h1>
+                <div class="card">
+                    <div class="row">
+                        <div class="row-info">
+                            <span class="row-title">Moteur de recherche par défaut</span>
+                            <span class="row-desc">Utilisé pour les requêtes tapées dans la barre d'adresse.</span>
+                        </div>
+                        <div class="row-control">
+                            <select id="searchEngine">
+                                <option value="google">Google</option>
+                                <option value="duckduckgo">DuckDuckGo</option>
+                                <option value="bing">Bing</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION : TIME MACHINE -->
+            <section id="timemachine" class="section">
+                <h1>Time Machine</h1>
+                <p style="color: var(--text-dim); margin-bottom: 30px;">Consultez et gérez vos archives locales
+                    chiffrées.</p>
+
+                <h2>Archives Enregistrées</h2>
+                <div id="archive-list-ui" class="archive-list-container">
+                    <p style="font-size: 0.9rem; opacity: 0.5;">Chargement des archives...</p>
+                </div>
+            </section>
+
+            <!-- SECTION : CONFIDENTIALITÉ -->
+            <section id="privacy" class="section">
+                <h1>Confidentialité</h1>
+                <h2>Niveau de Protection</h2>
+                <div class="protection-grid">
+                    <div class="p-card" data-level="basic">
+                        <h4>Basique</h4>
+                        <p>Bloque les traqueurs connus uniquement.</p>
+                    </div>
+                    <div class="p-card active" data-level="standard">
+                        <h4>Standard</h4>
+                        <p>Équilibre parfait pour la navigation quotidienne.</p>
+                    </div>
+                    <div class="p-card" data-level="strict">
+                        <h4>Strict</h4>
+                        <p>Bloque tout. Peut casser l'affichage de certains sites.</p>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="row">
+                        <div class="row-info">
+                            <span class="row-title">Forcer le HTTPS</span>
+                            <span class="row-desc">Sécurise automatiquement les connexions aux sites web.</span>
+                        </div>
+                        <div class="row-control">
+                            <label class="switch"><input type="checkbox" id="forceHttps" checked><span
+                                    class="slider"></span></label>
+                        </div>
+                    </div>
+                </div>
+                <button class="btn btn-danger" style="width: 100%;">Purger toutes les données de navigation</button>
+            </section>
+
+            <!-- SECTION : MOTS DE PASSE -->
+            <section id="passwords" class="section">
+                <h1>Mots de passe</h1>
+                <div class="card">
+                    <div class="row">
+                        <div class="row-info">
+                            <span class="row-title">Coffre-fort Crypto</span>
+                            <span class="row-desc">Le module Security protège vos identifiants via AES-256.</span>
+                        </div>
+                        <div class="row-control">
+                            <button class="btn btn-primary">Changer le Master Password</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION : RÉSEAU -->
+            <section id="network" class="section">
+                <h1>Réseau</h1>
+                <div class="card">
+                    <div class="row">
+                        <div class="row-info">
+                            <span class="row-title">DNS over HTTPS (DoH)</span>
+                            <span class="row-desc">Chiffre vos requêtes DNS pour éviter l'écoute de votre FAI.</span>
+                        </div>
+                        <div class="row-control">
+                            <select id="dohProvider">
+                                <option value="cloudflare">Cloudflare (1.1.1.1)</option>
+                                <option value="google">Google (8.8.8.8)</option>
+                                <option value="off">Désactivé</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION : PERFORMANCE -->
+            <section id="performance" class="section">
+                <h1>Performance</h1>
+                <div class="card">
+                    <div class="row">
+                        <div class="row-info">
+                            <span class="row-title">Accélération Matérielle GPU</span>
+                            <span class="row-desc">Utilise la carte graphique pour un rendu ultra-fluide.</span>
+                        </div>
+                        <div class="row-control">
+                            <label class="switch"><input type="checkbox" id="gpuAcceleration" checked><span
+                                    class="slider"></span></label>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="row-info">
+                            <span class="row-title">Hibernation Automatique</span>
+                            <span class="row-desc">Met les onglets inactifs en veille pour économiser la RAM.</span>
+                        </div>
+                        <div class="row-control">
+                            <select id="hibernationDelay">
+                                <option value="5">Après 5 minutes</option>
+                                <option value="15">Après 15 minutes</option>
+                                <option value="0">Désactivé</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION : LABS -->
+            <section id="labs" class="section">
+                <h1>Domus Labs 🧪</h1>
+                <p style="color: var(--text-dim); margin-bottom: 20px;">Fonctions expérimentales. À utiliser avec
+                    précaution.</p>
+                <div class="card" style="border-color: rgba(0, 255, 136, 0.4); background: rgba(0, 255, 136, 0.03);">
+                    <div class="row">
+                        <div class="row-info">
+                            <span class="row-title">Moteur Cinématique HDR</span>
+                            <span class="row-desc">Booste la dynamique des couleurs sur les vidéos web.</span>
+                        </div>
+                        <div class="row-control">
+                            <label class="switch"><input type="checkbox" id="cinematicEngine"><span
+                                    class="slider"></span></label>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="row-info">
+                            <span class="row-title">Dark Mode Forcé</span>
+                            <span class="row-desc">Force les sites clairs à s'afficher en sombre (Injection CSS).</span>
+                        </div>
+                        <div class="row-control">
+                            <label class="switch"><input type="checkbox" id="forceDark"><span
+                                    class="slider"></span></label>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="row-info">
+                            <span class="row-title">Moteur Acoustique Domus HD ⚡</span>
+                            <span class="row-desc">Optimise le son en temps réel (égalisation & normalisation hifi).</span>
+                        </div>
+                        <div class="row-control">
+                            <label class="switch"><input type="checkbox" id="audioBoosterEnabled"><span
+                                    class="slider"></span></label>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="row-info">
+                            <span class="row-title">Profil Audio par défaut</span>
+                            <span class="row-desc">Réglet acoustique par défaut appliqué aux nouveaux onglets.</span>
+                        </div>
+                        <div class="row-control">
+                            <select id="audioBoosterPreset" style="background: var(--bg-dark); border: 1px solid var(--border); color: white; padding: 4px; border-radius: 4px;">
+                                <option value="balanced">🎧 Équilibré & Punchy</option>
+                                <option value="vocal">🗣️ Voix Claire & Cinéma</option>
+                                <option value="bass">🔥 Bass Boost & Club</option>
+                                <option value="off">🚫 Désactivé</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION : DÉVELOPPEUR -->
+            <section id="developer" class="section">
+                <h1>Domus Dev Studio 🛠️</h1>
+                <p style="color: var(--text-dim); margin-bottom: 30px;">Outils d'ingénierie avancés. Désactivés par défaut pour la sécurité.</p>
+                
+                <div class="card" style="border-color: var(--accent); background: rgba(0, 255, 136, 0.05); margin-bottom: 40px;">
+                    <div class="row">
+                        <div class="row-info">
+                            <span class="row-title" style="font-size: 1.2rem;">Activer l'Arsenal Développeur</span>
+                            <span class="row-desc">Débloque les outils de diagnostic avancés dans la barre latérale.</span>
+                        </div>
+                        <div class="row-control">
+                            <label class="switch"><input type="checkbox" id="devStudioEnabled"><span class="slider"></span></label>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="dev-options-list" style="opacity: 0.5; pointer-events: none; transition: opacity 0.3s;">
+                    <h2>Outils Diagnostic & Stealth</h2>
+                    <div class="card">
+                        <div class="row">
+                            <div class="row-info">
+                                <span class="row-title">Shield Scan (Stealth Analyzer)</span>
+                                <span class="row-desc">Quoi : Analyse les tentatives de traçage et fingerprinting.<br>Quand : Pour vérifier la confidentialité d'un site.</span>
+                            </div>
+                            <div class="row-control">
+                                <label class="switch"><input type="checkbox" id="devStealth"><span class="slider"></span></label>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="row-info">
+                                <span class="row-title">Performance Heatmap</span>
+                                <span class="row-desc">Quoi : Calque visuel montrant la consommation CPU/RAM par zone.<br>Quand : Pour optimiser la vitesse de vos pages.</span>
+                            </div>
+                            <div class="row-control">
+                                <label class="switch"><input type="checkbox" id="devHeatmap"><span class="slider"></span></label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h2>Outils Productivité</h2>
+                    <div class="card">
+                        <div class="row">
+                            <div class="row-info">
+                                <span class="row-title">Local-to-Cloud Proxy</span>
+                                <span class="row-desc">Quoi : Remplace un fichier distant par un fichier local.<br>Quand : Pour tester des correctifs en production sans déploiement.</span>
+                            </div>
+                            <div class="row-control">
+                                <label class="switch"><input type="checkbox" id="devProxy"><span class="slider"></span></label>
+                            </div>
+                        </div>
+                        <div class="row">
+                    <div class="row-control">
+                                <label class="switch"><input type="checkbox" id="dev3D"><span class="slider"></span></label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION : À PROPOS -->
+            <section id="about" class="section">
+                <h1>À propos</h1>
+                <div class="card" style="text-align: center; padding: 60px 20px;">
+                    <div style="font-size: 5rem; margin-bottom: 20px;">🌐</div>
+                    <h2 style="margin: 0; color: white; font-size: 2rem;">DOMUS BROWSER</h2>
+                    <p style="color: var(--accent); font-weight: 800; margin-top: 15px;" id="about-version">Version 1.0.1-Pro</p>
+                    <p style="color: var(--text-dim); font-size: 0.8rem; margin-top: 10px;">Propulsé par Chromium Engine &amp; PortalCore Tech</p>
+
+                    <!-- === ZONE DE MISE À JOUR === -->
+                    <div style="margin-top: 36px; display: flex; flex-direction: column; align-items: center; gap: 14px;">
+                        <button class="btn btn-primary" id="check-update-btn" style="
+                            display: flex; align-items: center; gap: 10px; padding: 12px 28px;
+                            font-size: 0.95rem; font-weight: 700; letter-spacing: 0.5px;
+                            border: 1.5px solid var(--accent); border-radius: 12px;
+                            background: rgba(0,255,136,0.08); color: var(--accent);
+                            cursor: pointer; transition: all 0.2s;">
+                            <span id="update-btn-icon">🔍</span>
+                            <span id="update-btn-label">Vérifier les mises à jour</span>
+                        </button>
+
+                        <!-- Badge de statut dynamique -->
+                        <div id="updater-status" style="
+                            display: none; align-items: center; gap: 8px;
+                            padding: 10px 20px; border-radius: 10px; font-size: 0.85rem; font-weight: 600;
+                            border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.04);">
+                            <span id="updater-status-icon">ℹ️</span>
+                            <span id="updater-status-text">—</span>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 40px;">
+                        <button class="btn btn-danger" id="reset-factory-btn">Réinitialiser Domus</button>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <script>
+        // --- NAVIGATION FLUIDE ---
+        const navItems = document.querySelectorAll('.nav-item');
+        const sections = document.querySelectorAll('.section');
+
+        navItems.forEach(item => {
+            item.addEventListener('click', () => {
+                const targetId = item.getAttribute('data-target');
+
+                if (targetId === 'extensions') {
+                    if (window.domusAPI && window.domusAPI.openExtensions) {
+                        window.domusAPI.openExtensions();
+                    }
+                    return;
+                }
+
+                navItems.forEach(ni => ni.classList.remove('active'));
+                item.classList.add('active');
+
+                sections.forEach(sec => {
+                    sec.classList.remove('active');
+                    if (sec.id === targetId) sec.classList.add('active');
+                });
+
+                if (targetId === 'timemachine') loadArchives();
+                document.getElementById('settings-scroll-area').scrollTop = 0;
+            });
+        });
+
+        // --- THEME & ACCENT COLOR (Local UI) ---
+        document.querySelectorAll('.color-dot').forEach(dot => {
+            dot.addEventListener('click', () => {
+                document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('active'));
+                dot.classList.add('active');
+
+                const color = dot.getAttribute('data-color');
+                document.documentElement.style.setProperty('--accent', color);
+                saveSettings(); // Enregistre la nouvelle couleur
+            });
+        });
+
+        // --- TIME MACHINE LOGIC ---
+        async function loadArchives() {
+            const container = document.getElementById('archive-list-ui');
+            if (!window.domusAPI) return;
+
+            const archives = await window.domusAPI.getArchives();
+            container.innerHTML = '';
+
+            if (archives.length === 0) {
+                container.innerHTML = '<p style="opacity:0.5; text-align:center;">Aucune archive locale détectée.</p>';
+                return;
+            }
+
+            archives.forEach(arch => {
+                const item = document.createElement('div');
+                item.className = 'archive-item';
+                item.innerHTML = `
+                    <div class="archive-info">
+                        <span class="archive-title">${arch.title}</span>
+                        <span class="archive-meta">${arch.date} • Source: ${arch.url}</span>
+                    </div>
+                    <div class="archive-actions">
+                        <button class="btn btn-ghost btn-view">Ouvrir</button>
+                        <button class="btn btn-ghost btn-del" style="color: #ff3b30; border-color: rgba(255,59,48,0.3);">Supprimer</button>
+                    </div>
+                `;
+
+                item.querySelector('.btn-view').onclick = () => {
+                    const readerURL = `file://${window.location.pathname.replace('settings.html', 'reader.html')}?id=${arch.id}`;
+                    window.domusAPI.loadURL(readerURL);
+                };
+
+                item.querySelector('.btn-del').onclick = async () => {
+                    if (confirm(`Voulez-vous supprimer définitivement l'archive : "${arch.title}" ?`)) {
+                        await window.domusAPI.deleteArchive(arch.id);
+                        loadArchives();
+                    }
+                };
+                container.appendChild(item);
+            });
+        }
+
+        // --- PERSISTANCE DES DONNEES ---
+        async function loadSettings() {
+            if (!window.domusAPI) return;
+            const config = await window.domusAPI.getSettings();
+
+            for (const [key, value] of Object.entries(config)) {
+                const el = document.getElementById(key);
+                if (!el) continue;
+
+                if (el.type === 'checkbox') el.checked = value;
+                else el.value = value;
+            }
+
+            // Restauration UI Couleur
+            if (config.accentColor) {
+                document.documentElement.style.setProperty('--accent', config.accentColor);
+                document.querySelectorAll('.color-dot').forEach(d => {
+                    d.classList.toggle('active', d.getAttribute('data-color') === config.accentColor);
+                });
+            }
+
+            // Restauration UI Protection
+            if (config.protectionLevel) {
+                document.querySelectorAll('.p-card').forEach(c => {
+                    c.classList.toggle('active', c.getAttribute('data-level') === config.protectionLevel);
+                });
+            }
+        }
+
+        async function saveSettings() {
+            if (!window.domusAPI) return;
+            const config = {};
+
+            // Gestionnaire Dev Studio
+            const devMaster = document.getElementById('devStudioEnabled');
+            const devList = document.getElementById('dev-options-list');
+            if (devMaster && devList) {
+                devMaster.addEventListener('change', () => {
+                    devList.style.opacity = devMaster.checked ? '1' : '0.5';
+                    devList.style.pointerEvents = devMaster.checked ? 'auto' : 'none';
+                });
+                // Initial state
+                devList.style.opacity = devMaster.checked ? '1' : '0.5';
+                devList.style.pointerEvents = devMaster.checked ? 'auto' : 'none';
+            }
+
+            document.querySelectorAll('input, select').forEach(el => {
+                if (el.id && el.type !== 'password') {
+                    config[el.id] = (el.type === 'checkbox') ? el.checked : el.value;
+                }
+            });
+
+            // Capture Accent Color & Protection Level
+            const activeColor = document.querySelector('.color-dot.active');
+            if (activeColor) config.accentColor = activeColor.getAttribute('data-color');
+
+            const activeShield = document.querySelector('.p-card.active');
+            if (activeShield) config.protectionLevel = activeShield.getAttribute('data-level');
+
+            await window.domusAPI.saveSettings(config);
+        }
+
+        // Auto-save au changement
+        document.querySelectorAll('input, select').forEach(el => {
+            el.addEventListener('change', saveSettings);
+        });
+
+        document.querySelectorAll('.p-card').forEach(card => {
+            card.addEventListener('click', () => {
+                document.querySelectorAll('.p-card').forEach(c => c.classList.remove('active'));
+                card.classList.add('active');
+                saveSettings();
+            });
+        });
+
+        // Reset
+        document.getElementById('reset-factory-btn')?.addEventListener('click', async () => {
+            if (confirm("🚨 ATTENTION : Ceci effacera tous les réglages de Domus. Poursuivre ?")) {
+                await window.domusAPI.resetBrowser();
+            }
+        });
+
+        // Vider le Cache (Bilan #9)
+        document.querySelector('.btn-danger[style*="width: 100%"]')?.addEventListener('click', async () => {
+            if (confirm("Voulez-vous purger toutes les données de navigation (Cache, Cookies) ?")) {
+                await window.domusAPI.clearCache();
+                alert("Domus est maintenant tout propre !");
+            }
+        });
+
+        // Backup / Export
+        document.querySelector('#passwords .btn-primary')?.addEventListener('click', async () => {
+            const settings = await window.domusAPI.getSettings();
+            const res = await window.domusAPI.exportBackup(settings);
+            if (res.success) alert("Sauvegarde chiffrée exportée !");
+        });
+
+        // Monitoring Performance (Live)
+        setInterval(async () => {
+            if (document.getElementById('performance').classList.contains('active')) {
+                const stats = await window.domusAPI.getPerformanceStats();
+                const container = document.getElementById('performance');
+                let info = document.getElementById('perf-live-info');
+                if (!info) {
+                    info = document.createElement('div');
+                    info.id = 'perf-live-info';
+                    info.style.cssText = 'margin-top: 20px; font-size: 12px; color: var(--accent); opacity: 0.8;';
+                    container.querySelector('.card').appendChild(info);
+                }
+                info.innerHTML = `📊 Utilisation RAM : ${stats.memory} MB | CPU : ${stats.cpu}% | GPU : ${stats.gpu ? 'Actif' : 'Off'}`;
+            }
+        }, 3000);
+
+        // ============================================================
+        // --- SYSTÈME DE MISE À JOUR GITHUB ---
+        // ============================================================
+        const checkUpdateBtn  = document.getElementById('check-update-btn');
+        const updateBtnIcon   = document.getElementById('update-btn-icon');
+        const updateBtnLabel  = document.getElementById('update-btn-label');
+        const updaterStatus   = document.getElementById('updater-status');
+        const updaterStatusIcon = document.getElementById('updater-status-icon');
+        const updaterStatusText = document.getElementById('updater-status-text');
+
+        function showUpdateStatus(icon, text, color = 'rgba(255,255,255,0.1)') {
+            updaterStatusIcon.textContent = icon;
+            updaterStatusText.textContent = text;
+            updaterStatus.style.display   = 'flex';
+            updaterStatus.style.borderColor = color;
+        }
+
+        function resetUpdateBtn() {
+            checkUpdateBtn.disabled       = false;
+            checkUpdateBtn.style.opacity  = '1';
+            updateBtnIcon.textContent     = '🔍';
+            updateBtnLabel.textContent    = 'Vérifier les mises à jour';
+        }
+
+        checkUpdateBtn?.addEventListener('click', async () => {
+            if (!window.domusAPI?.checkForUpdates) return;
+
+            // État : Recherche en cours
+            checkUpdateBtn.disabled       = true;
+            checkUpdateBtn.style.opacity  = '0.6';
+            updateBtnIcon.textContent     = '⏳';
+            updateBtnLabel.textContent    = 'Vérification en cours...';
+            updaterStatus.style.display   = 'none';
+
+            try {
+                const result = await window.domusAPI.checkForUpdates();
+
+                switch (result.status) {
+                    case 'up-to-date':
+                        showUpdateStatus('✅', `Domus v${result.version} est déjà à jour !`, 'rgba(0,255,136,0.3)');
+                        break;
+                    case 'downloaded':
+                        showUpdateStatus('🚀', `Mise à jour v${result.version} prête ! Veuillez redémarrer Domus manuellement.`, 'rgba(0,200,255,0.4)');
+                        break;
+                    case 'busy':
+                        showUpdateStatus('⏳', 'Vérification déjà en cours...', 'rgba(255,200,0,0.3)');
+                        break;
+                    case 'error':
+                    default:
+                        showUpdateStatus('❌', result.message || 'Erreur lors de la vérification.', 'rgba(255,59,48,0.3)');
+                        break;
+                }
+            } catch (e) {
+                showUpdateStatus('❌', 'Impossible de contacter GitHub.', 'rgba(255,59,48,0.3)');
+            }
+
+            resetUpdateBtn();
+        });
+
+        // Charger la version réelle depuis le processus Electron
+        async function loadAppVersion() {
+            if (window.domusAPI?.getAppVersion) {
+                try {
+                    const version = await window.domusAPI.getAppVersion();
+                    const el = document.getElementById('about-version');
+                    if (el && version) el.textContent = `Version ${version}-Pro`;
+                } catch(e) {}
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            loadSettings();
+            loadArchives();
+            loadAppVersion();
+        });
+
+    </script>
+</body>
+
+</html>
