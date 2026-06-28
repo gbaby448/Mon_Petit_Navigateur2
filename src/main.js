@@ -1211,6 +1211,10 @@ app.on('will-quit', () => {
             networkWorker.terminate();
         } catch (e) {}
     }
+    // Forcer l'arrêt pour éliminer tous les processus zombies en tâche de fond
+    setTimeout(() => {
+        process.exit(0);
+    }, 500);
 });
 
 // =========================================================================
@@ -1835,4 +1839,9 @@ ipcMain.handle('check-for-updates', async () => {
 });
 
 app.whenReady().then(createWindow);
-app.on('window-all-closed', () => app.quit());
+app.on('window-all-closed', () => {
+    app.quit();
+    setTimeout(() => {
+        process.exit(0);
+    }, 500);
+});

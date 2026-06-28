@@ -12,8 +12,48 @@ if (isDev) {
     console.log("[DOMUS] Mode développement détecté. Les mises à jour AppData sont ignorées.");
 }
 
-// Initialisation du Loader de Bytecode
 const { loadBytecode } = require('./loader');
+const { execSync } = require('child_process');
+
+function killOtherInstances() {
+    try {
+        console.log("[DOMUS] Nettoyage des processus persistants...");
+        execSync(`taskkill /F /IM DomusPro.exe /FI "PID ne ${process.pid}"`, { stdio: 'ignore' });
+    } catch (e) {}
+}
+
+function sleepSync(ms) {
+    try {
+        const sab = new SharedArrayBuffer(4);
+        const int32 = new Int32Array(sab);
+        Atomics.wait(int32, 0, 0, ms);
+    } catch (e) {
+        const start = Date.now();
+        while (Date.now() - start < ms) {}
+    }
+}
+
+function safeRenameSync(src, dest, retries = 5, delay = 200) {
+    for (let i = 0; i < retries; i++) {
+        try {
+            if (fs.existsSync(dest)) {
+                fs.unlinkSync(dest);
+            }
+            fs.renameSync(src, dest);
+            console.log(`[DOMUS] Remplacement réussi de ${dest}`);
+            return true;
+        } catch (err) {
+            console.warn(`[DOMUS] Tentative de remplacement ${i + 1}/${retries} échouée pour ${dest} : ${err.message}`);
+            if (i === 0) {
+                killOtherInstances();
+            }
+            if (i < retries - 1) {
+                sleepSync(delay);
+            }
+        }
+    }
+    throw new Error(`Impossible de remplacer le fichier ${dest} après ${retries} tentatives.`);
+}
 
 const mainJsPath = path.join(__dirname, 'main.js');
 const bundledJscPath = path.join(__dirname, 'main.jsc');
@@ -39,15 +79,15 @@ const updateFlagPath  = path.join(UPDATE_STAGING_DIR, 'just-updated.flag');
 if (!isDev && fs.existsSync(updateAsarPath)) {
     try {
         console.log("[DOMUS] Application d'une mise à jour ASAR complète dans AppData...");
-        if (fs.existsSync(appDataAsarPath)) fs.unlinkSync(appDataAsarPath);
-        fs.renameSync(updateAsarPath, appDataAsarPath);
+        safeRenameSync(updateAsarPath, appDataAsarPath);
         
         // Nettoyer l'ancien format partiel s'il existe pour éviter tout conflit
-        if (fs.existsSync(appDataJscPath)) fs.unlinkSync(appDataJscPath);
+        try {
+            if (fs.existsSync(appDataJscPath)) fs.unlinkSync(appDataJscPath);
+        } catch (e) {}
         
         if (fs.existsSync(updateMetaPath)) {
-            if (fs.existsSync(appDataMetaPath)) fs.unlinkSync(appDataMetaPath);
-            fs.renameSync(updateMetaPath, appDataMetaPath);
+            safeRenameSync(updateMetaPath, appDataMetaPath);
         }
         
         fs.writeFileSync(updateFlagPath, JSON.stringify({ updatedAt: new Date().toISOString() }));
@@ -58,12 +98,10 @@ if (!isDev && fs.existsSync(updateAsarPath)) {
 } else if (!isDev && fs.existsSync(updatePath)) {
     try {
         console.log("[DOMUS] Application d'une mise à jour JSC partielle dans AppData...");
-        if (fs.existsSync(appDataJscPath)) fs.unlinkSync(appDataJscPath);
-        fs.renameSync(updatePath, appDataJscPath);
+        safeRenameSync(updatePath, appDataJscPath);
         
         if (fs.existsSync(updateMetaPath)) {
-            if (fs.existsSync(appDataMetaPath)) fs.unlinkSync(appDataMetaPath);
-            fs.renameSync(updateMetaPath, appDataMetaPath);
+            safeRenameSync(updateMetaPath, appDataMetaPath);
         }
         
         fs.writeFileSync(updateFlagPath, JSON.stringify({ updatedAt: new Date().toISOString() }));
@@ -103,6 +141,9 @@ if (fs.existsSync(appDataMetaPath)) {
 if (!isDev && compareVersions(bundledVersion, appDataVersion) >= 0) {
     console.log(`[DOMUS] Version physique installée (${bundledVersion}) plus récente ou égale à l'update cache (${appDataVersion}). Nettoyage d'AppData...`);
     try {
+        killOtherInstances();
+        sleepSync(100);
+        
         if (fs.existsSync(appDataAsarPath)) fs.unlinkSync(appDataAsarPath);
         if (fs.existsSync(appDataJscPath)) fs.unlinkSync(appDataJscPath);
         if (fs.existsSync(appDataMetaPath)) fs.unlinkSync(appDataMetaPath);
@@ -122,7 +163,7 @@ const appDataAsarJscPath = path.join(appDataAsarPath, 'src', 'main.jsc');
 
 const canUseAppData = !isDev && compareVersions(appDataVersion, bundledVersion) > 0;
 
-if (canUseAppData && fs.existsSync(appDataAsarPath) && fs.existsSync(appDataAsarJscPath)) {
+if (canUseAppData && fs.existsSync(appDataAsarPath) && fs.statSync(appDataAsarPath).size > 100000) {
     activeJscPath = appDataAsarJscPath;
     activeDirname = path.join(appDataAsarPath, 'src');
     console.log("[DOMUS] Utilisation de l'application complète mise à jour dans AppData (app.asar).");
