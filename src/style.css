@@ -230,6 +230,8 @@ html, body {
     padding: 0 10px;
     border-bottom: 1px solid rgba(255,255,255,0.03);
     -webkit-app-region: no-drag;
+    position: relative;
+    z-index: 100;
 }
 
 #tabs-container {
@@ -2526,8 +2528,8 @@ body.cinema-mode .main-content {
 /* DROPDOWN */
 #ws-dropdown {
     position: absolute;
-    top: 78px; /* sous la tab bar */
-    left: 56px; /* aligné après la sidebar */
+    top: 38px; /* sous la tab bar */
+    left: 10px; /* aligné avec le ws-switcher */
     width: 220px;
     background: rgba(12, 12, 18, 0.97);
     backdrop-filter: blur(30px);

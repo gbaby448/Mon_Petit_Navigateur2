@@ -4,7 +4,7 @@ Ce fichier trace l'évolution, le changelog et les audits fonctionnels du naviga
 
 ---
 
-## 🌟 v1.7.5 - Robustesse des MAJ & Templates de Workspace Personnalisés
+## 🌟 v1.7.6 - Robustesse des MAJ & Templates de Workspace Personnalisés
 *Date de sortie : 28 juin 2026*
 
 Cette mise à jour apporte une robustesse accrue au système de mise à jour automatique tout en étendant la personnalisation dans le Workspace Studio.
