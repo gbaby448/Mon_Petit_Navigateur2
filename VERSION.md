@@ -4,6 +4,11 @@ Ce fichier trace l'évolution, le changelog et les audits fonctionnels du naviga
 
 ---
 
+## 🌟 v1.8.7 - Correction du dialogue de confirmation de suppression d'espace de travail
+*Date de sortie : 28 juin 2026*
+
+Cette mise à jour corrige le plantage lors de la suppression d'un espace de travail (erreur `TypeError: Cannot set properties of null (setting 'textContent')`) en ajoutant les éléments HTML requis pour le dialogue de confirmation Domus (`domus-confirm-modal`). Cela stabilise également la suppression de cartes de crédit et d'identifiants du coffre-fort.
+
 ## 🌟 v1.8.6 - Swap Atomique NTFS contre le verrouillage de fichiers Windows
 *Date de sortie : 28 juin 2026*
 
