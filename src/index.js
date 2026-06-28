@@ -120,11 +120,13 @@ let activeDirname = __dirname;
 
 const appDataAsarJscPath = path.join(appDataAsarPath, 'src', 'main.jsc');
 
-if (!isDev && fs.existsSync(appDataAsarPath) && fs.existsSync(appDataAsarJscPath)) {
+const canUseAppData = !isDev && compareVersions(appDataVersion, bundledVersion) > 0;
+
+if (canUseAppData && fs.existsSync(appDataAsarPath) && fs.existsSync(appDataAsarJscPath)) {
     activeJscPath = appDataAsarJscPath;
     activeDirname = path.join(appDataAsarPath, 'src');
     console.log("[DOMUS] Utilisation de l'application complète mise à jour dans AppData (app.asar).");
-} else if (!isDev && fs.existsSync(appDataJscPath)) {
+} else if (canUseAppData && fs.existsSync(appDataJscPath)) {
     activeJscPath = appDataJscPath;
     activeDirname = __dirname;
     console.log("[DOMUS] Utilisation du binaire de mise à jour partiel dans AppData (main.jsc).");
