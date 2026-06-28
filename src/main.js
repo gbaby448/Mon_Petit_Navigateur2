@@ -8,6 +8,8 @@ const dns = require('dns');
 const securityManager = require('./security');
 const DomusUpdater = require('./updater');
 
+let networkWorker = null;
+
 const getAppVersion = () => {
     if (!app.isPackaged) {
         try {
@@ -827,7 +829,30 @@ function createWindow() {
     });
     console.log('[DOMUS] Correcteur orthographique et plugins PDF activés');
 
-    // --- GESTION DES PERMISSIONS (Caméra, Micro, Notifications, Géolocalisation) ---
+    // --- GESTION DES PERMISSIONS INTÉGRÉES (STYLE PREMIUM AVEC MÉMORISATION) ---
+    const activePermissionCallbacks = new Map();
+    let nextPermissionRequestId = 1;
+
+    ipcMain.on('respond-permission', (event, requestId, allowed, remember, host, permission) => {
+        const cb = activePermissionCallbacks.get(requestId);
+        if (cb) {
+            activePermissionCallbacks.delete(requestId);
+            if (remember) {
+                try {
+                    const settings = loadData(settingsPath, {});
+                    if (!settings.permissions) settings.permissions = {};
+                    if (!settings.permissions[permission]) settings.permissions[permission] = {};
+                    settings.permissions[permission][host] = allowed ? 'allow' : 'deny';
+                    saveData(settingsPath, settings);
+                    console.log(`[DOMUS SEC] Permission ${permission} pour ${host} enregistrée : ${allowed ? 'ALLOW' : 'DENY'}`);
+                } catch (e) {
+                    console.error('[DOMUS] Erreur de sauvegarde de permission :', e);
+                }
+            }
+            cb(allowed);
+        }
+    });
+
     session.defaultSession.setPermissionRequestHandler((webContents, permission, callback, details) => {
         const allowedPermissions = ['media', 'geolocation', 'notifications', 'midiSysex'];
         if (!allowedPermissions.includes(permission)) {
@@ -838,6 +863,23 @@ function createWindow() {
         let host = requestingUrl;
         try { host = new URL(requestingUrl).hostname; } catch (e) {}
 
+        // 1. Vérifier si la permission a déjà été mémorisée
+        try {
+            const settings = loadData(settingsPath, {});
+            const savedPermissions = settings.permissions || {};
+            const permCategory = savedPermissions[permission] || {};
+            if (permCategory[host] === 'allow') {
+                console.log(`[DOMUS SEC] Permission ${permission} pour ${host} : AUTORISÉE (mémorisée)`);
+                return callback(true);
+            } else if (permCategory[host] === 'deny') {
+                console.log(`[DOMUS SEC] Permission ${permission} pour ${host} : REFUSÉE (mémorisée)`);
+                return callback(false);
+            }
+        } catch (e) {
+            console.error('[DOMUS] Erreur de lecture des permissions mémorisées :', e);
+        }
+
+        // 2. Sinon, demander à l'utilisateur via la bulle de permission intégrée
         const permissionNames = {
             'media': 'Accéder à votre caméra et/ou votre microphone',
             'geolocation': 'Accéder à votre position géographique',
@@ -846,23 +888,19 @@ function createWindow() {
         };
 
         const permissionName = permissionNames[permission] || permission;
+        const requestId = nextPermissionRequestId++;
+        activePermissionCallbacks.set(requestId, callback);
 
-        const { dialog } = require('electron');
-        dialog.showMessageBox(win, {
-            type: 'question',
-            buttons: ['Autoriser', 'Bloquer'],
-            defaultId: 0,
-            title: 'Demande d\'autorisation - Domus',
-            message: `Le site ${host} souhaite effectuer l'action suivante :\n\n👉 ${permissionName}\n\nSouhaitez-vous autoriser cette demande ?`,
-            cancelId: 1
-        }).then(({ response }) => {
-            const allowed = response === 0;
-            console.log(`[DOMUS SEC] Permission ${permission} pour ${host} : ${allowed ? 'AUTORISÉE' : 'REFUSÉE'}`);
-            callback(allowed);
-        }).catch(err => {
-            console.error('[DOMUS] Erreur de boîte de dialogue permission:', err);
+        if (win && !win.isDestroyed()) {
+            win.webContents.send('request-permission-ui', {
+                id: requestId,
+                host: host,
+                permission: permission,
+                permissionName: permissionName
+            });
+        } else {
             callback(false);
-        });
+        }
     });
 
     session.defaultSession.setPermissionCheckHandler((webContents, permission, requestingOrigin, details) => {
@@ -885,13 +923,13 @@ function createWindow() {
     } catch (e) {
         console.error('[DOMUS] Erreur de calcul du chemin des modules :', e);
     }
-    const worker = new Worker(path.join(__dirname, 'network-worker.js'), {
+    networkWorker = new Worker(path.join(__dirname, 'network-worker.js'), {
         workerData: {
             unpackedNodeModulesPath: unpackedNodeModulesPath
         }
     });
     
-    worker.on('message', (msg) => {
+    networkWorker.on('message', (msg) => {
         if (msg.type === 'geo-result' && win && !win.isDestroyed()) {
             win.webContents.send('geo-update', msg);
         }
@@ -935,8 +973,8 @@ function createWindow() {
         try {
             const parsedUrl = new URL(details.url);
             dns.lookup(parsedUrl.hostname, (err, address) => {
-                if (!err && address && worker) {
-                    worker.postMessage({ type: 'lookup-ip', ip: address, url: details.url });
+                if (!err && address && networkWorker) {
+                    networkWorker.postMessage({ type: 'lookup-ip', ip: address, url: details.url });
                 }
             });
         } catch (e) {}
@@ -1143,7 +1181,14 @@ function createWindow() {
     globalShortcut.register('CommandOrControl+P', () => sendToRenderer('shortcut-print'));
 }
 
-app.on('will-quit', () => globalShortcut.unregisterAll());
+app.on('will-quit', () => {
+    globalShortcut.unregisterAll();
+    if (networkWorker) {
+        try {
+            networkWorker.terminate();
+        } catch (e) {}
+    }
+});
 
 // =========================================================================
 // 💼 GESTION DES ESPACES DE TRAVAIL (WORKSPACES)

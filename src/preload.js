@@ -162,7 +162,11 @@ if (isSystemPage) {
             });
             // BUG 4 FIX : un seul listener (la boucle créait 9 listeners identiques → déclenché 9×)
             ipcRenderer.on('shortcut-goto-tab', (_, n) => callback(`goto-tab-${n}`));
-        }
+        },
+
+        // --- GESTION DES PERMISSIONS INTÉGRÉES ---
+        onRequestPermissionUI: (callback) => ipcRenderer.on('request-permission-ui', (event, data) => callback(data)),
+        respondPermission: (requestId, allowed, remember, host, permission) => ipcRenderer.send('respond-permission', requestId, allowed, remember, host, permission)
     });
 } else {
     // --- CONTEXTE TIERS ISOLÉ (SITES WEB STANDARDS) ---

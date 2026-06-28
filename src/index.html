@@ -127,6 +127,30 @@
                 </div>
             </nav>
 
+            <!-- BULLE DE PERMISSION INTÉGRÉE (STYLE PREMIUM) -->
+            <div id="permission-bubble" class="permission-bubble hidden">
+                <div class="permission-bubble-content">
+                    <div class="permission-bubble-header">
+                        <span id="permission-bubble-icon" class="permission-icon">🌐</span>
+                        <div class="permission-bubble-title" id="permission-bubble-title">Autorisation requise</div>
+                    </div>
+                    <div class="permission-bubble-body">
+                        Le site <span id="permission-bubble-host" style="font-weight: bold; color: var(--accent-color);">...</span> souhaite :
+                        <div id="permission-bubble-desc" class="permission-desc-text">...</div>
+                    </div>
+                    <div class="permission-bubble-remember">
+                        <label class="remember-label">
+                            <input type="checkbox" id="chk-permission-remember" checked>
+                            Mémoriser mon choix
+                        </label>
+                    </div>
+                    <div class="permission-bubble-actions">
+                        <button id="btn-permission-deny" class="action-btn secondary small-btn">Bloquer</button>
+                        <button id="btn-permission-allow" class="action-btn small-btn">Autoriser</button>
+                    </div>
+                </div>
+            </div>
+
             <!-- BARRE DE FAVORIS HORIZONTALE -->
             <div id="bookmarks-bar" class="hidden">
                 <div id="bookmarks-bar-list"></div>

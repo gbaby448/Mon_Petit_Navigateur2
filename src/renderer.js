@@ -4086,6 +4086,43 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
+    // --- GESTION DE LA BULLE DE PERMISSION INTÉGRÉE ---
+    const permissionBubble = document.getElementById('permission-bubble');
+    const permBubbleHost = document.getElementById('permission-bubble-host');
+    const permBubbleDesc = document.getElementById('permission-bubble-desc');
+    const chkPermRemember = document.getElementById('chk-permission-remember');
+    const btnPermAllow = document.getElementById('btn-permission-allow');
+    const btnPermDeny = document.getElementById('btn-permission-deny');
+    const permBubbleIcon = document.getElementById('permission-bubble-icon');
+
+    if (window.domusAPI.onRequestPermissionUI) {
+        window.domusAPI.onRequestPermissionUI((data) => {
+            if (!permissionBubble) return;
+
+            const icons = {
+                'media': '📹',
+                'geolocation': '📍',
+                'notifications': '🔔',
+                'midiSysex': '🎹'
+            };
+            if (permBubbleIcon) permBubbleIcon.textContent = icons[data.permission] || '🌐';
+            if (permBubbleHost) permBubbleHost.textContent = data.host;
+            if (permBubbleDesc) permBubbleDesc.textContent = data.permissionName;
+            if (chkPermRemember) chkPermRemember.checked = true;
+
+            permissionBubble.classList.remove('hidden');
+
+            const handleResponse = (allowed) => {
+                permissionBubble.classList.add('hidden');
+                const remember = chkPermRemember ? chkPermRemember.checked : false;
+                window.domusAPI.respondPermission(data.id, allowed, remember, data.host, data.permission);
+            };
+
+            if (btnPermAllow) btnPermAllow.onclick = () => handleResponse(true);
+            if (btnPermDeny) btnPermDeny.onclick = () => handleResponse(false);
+        });
+    }
+
     } catch (e) {
         console.error("FATAL RENDERER ERROR:", e);
     }
