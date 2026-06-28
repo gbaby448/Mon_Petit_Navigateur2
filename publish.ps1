@@ -44,15 +44,18 @@ if (Test-Path "$tempDir\src\main.js") { Remove-Item "$tempDir\src\main.js" -Forc
 # Copier package.json
 Copy-Item "package.json" "$tempDir" -Force
 
-# Packager avec asar
-$asarFile = "dist\app.asar"
-if (Test-Path $asarFile) { Remove-Item $asarFile -Force }
+# Packager avec asar dans un sous-dossier de build temporaire unique pour éviter les verrouillages
+$asarBuildDir = "dist\build_asar_$version"
+if (Test-Path $asarBuildDir) { Remove-Item -Recurse -Force $asarBuildDir -ErrorAction SilentlyContinue }
+New-Item -ItemType Directory -Path $asarBuildDir | Out-Null
+
+$asarFile = "$asarBuildDir\app.asar"
 npx asar pack $tempDir $asarFile
 if ($LASTEXITCODE -ne 0) { Write-Host "ERREUR : Packaging asar echoue." -ForegroundColor Red; exit 1 }
 
 # Nettoyer
 Remove-Item -Recurse -Force $tempDir
-Write-Host "      OK - app.asar genere dans dist\app.asar" -ForegroundColor Green
+Write-Host "      OK - app.asar genere dans $asarFile" -ForegroundColor Green
 
 # --- Etape 3 : Commit et tag Git ---
 Write-Host "[3/5] Commit et tag Git..." -ForegroundColor Yellow
@@ -116,6 +119,9 @@ gh release create $tag `
 
 if ($LASTEXITCODE -ne 0) { Write-Host "ERREUR : Creation de la release GitHub echouee." -ForegroundColor Red; exit 1 }
 Write-Host "      OK - Release $tag publiee avec main.jsc + app.asar + installeur." -ForegroundColor Green
+
+# Nettoyer le dossier temporaire de packaging asar
+if (Test-Path $asarBuildDir) { Remove-Item -Recurse -Force $asarBuildDir -ErrorAction SilentlyContinue }
 
 # --- Etape 5 : Resume ---
 Write-Host ""

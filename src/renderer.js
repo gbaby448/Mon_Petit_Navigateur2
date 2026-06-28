@@ -2203,15 +2203,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Gestionnaire global pour les boutons de fermeture des panneaux
-    document.querySelectorAll('.panel-close').forEach(btn => {
+    // Gestionnaire global pour tous les boutons de fermeture (panneaux et modales)
+    document.querySelectorAll('[data-close]').forEach(btn => {
         btn.onclick = (e) => {
             e.stopPropagation();
-            const panelId = btn.dataset.close;
-            const panel = document.getElementById(panelId);
-            if (panel) {
-                panel.classList.add('hidden');
-                window.domusAPI.resizeActiveTab({ hasPanel: false });
+            const targetId = btn.dataset.close;
+            const element = document.getElementById(targetId);
+            if (element) {
+                element.classList.add('hidden');
+                
+                // Si c'est une modale, appeler updateModalState pour redimensionner l'onglet
+                if (element.classList.contains('modal-overlay')) {
+                    updateModalState();
+                } else {
+                    window.domusAPI.resizeActiveTab({ hasPanel: false });
+                }
             }
         };
     });
