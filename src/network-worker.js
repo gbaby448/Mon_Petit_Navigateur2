@@ -1,5 +1,21 @@
-const { parentPort } = require('worker_threads');
-const geoip = require('geoip-lite');
+const { parentPort, workerData } = require('worker_threads');
+const path = require('path');
+
+let geoip = null;
+try {
+    if (workerData && workerData.unpackedNodeModulesPath) {
+        const geoipPath = path.join(workerData.unpackedNodeModulesPath, 'geoip-lite');
+        geoip = require(geoipPath);
+    } else {
+        geoip = require('geoip-lite');
+    }
+} catch (e) {
+    try {
+        geoip = require('geoip-lite');
+    } catch (err) {
+        console.error('[DOMUS Worker] Impossible de charger geoip-lite :', err);
+    }
+}
 
 /**
  * DOMUS ECO-SHIELD WORKER
@@ -19,7 +35,7 @@ parentPort.on('message', (task) => {
         parentPort.postMessage({ type: 'url-result', id: task.id, block: shouldBlock });
     }
     
-    if (task.type === 'lookup-ip') {
+    if (task.type === 'lookup-ip' && geoip) {
         const geo = geoip.lookup(task.ip);
         if (geo) {
             parentPort.postMessage({ type: 'geo-result', url: task.url, country: geo.country, city: geo.city });

@@ -874,7 +874,22 @@ function createWindow() {
 
     // --- BOUCLIER & GÉOLOCALISATION VIA WORKER ---
     let blockedCount = 0;
-    const worker = new Worker(path.join(__dirname, 'network-worker.js'));
+    let unpackedNodeModulesPath = null;
+    try {
+        const appPath = app.getAppPath();
+        if (appPath.endsWith('app.asar')) {
+            unpackedNodeModulesPath = path.join(path.dirname(appPath), 'app.asar.unpacked', 'node_modules');
+        } else {
+            unpackedNodeModulesPath = path.join(appPath, 'node_modules');
+        }
+    } catch (e) {
+        console.error('[DOMUS] Erreur de calcul du chemin des modules :', e);
+    }
+    const worker = new Worker(path.join(__dirname, 'network-worker.js'), {
+        workerData: {
+            unpackedNodeModulesPath: unpackedNodeModulesPath
+        }
+    });
     
     worker.on('message', (msg) => {
         if (msg.type === 'geo-result' && win && !win.isDestroyed()) {
