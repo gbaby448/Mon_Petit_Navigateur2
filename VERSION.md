@@ -4,7 +4,7 @@ Ce fichier trace l'évolution, le changelog et les audits fonctionnels du naviga
 
 ---
 
-## 🌟 v1.7.9 - Robustesse des MAJ & Templates de Workspace Personnalisés
+## 🌟 v1.8.0 - Affichage des Onglets par Espace de Travail & Robustesse MAJ
 *Date de sortie : 28 juin 2026*
 
 Cette mise à jour apporte une robustesse accrue au système de mise à jour automatique tout en étendant la personnalisation dans le Workspace Studio.

@@ -99,6 +99,27 @@ const saveData = (p, d) => {
     }
 };
 
+const sendWorkspaceCounts = () => {
+    try {
+        let workspaces = loadData(workspacesPath, defaultWorkspaces);
+        if (!workspaces.find(w => w.id === 'default')) {
+            workspaces = [defaultWorkspaces[0], ...workspaces];
+        }
+        const counts = {};
+        workspaces.forEach(ws => {
+            counts[ws.id] = Array.from(tabs.values()).filter(t => t.workspace === ws.id).length;
+        });
+        if (win && !win.isDestroyed()) {
+            win.webContents.send('workspace-counts', {
+                counts: counts,
+                list: workspaces
+            });
+        }
+    } catch (e) {
+        console.error("[DOMUS] Échec de l'envoi des comptes de workspace :", e.message);
+    }
+};
+
 const saveSession = () => {
     try {
         const workspaces = loadData(workspacesPath, defaultWorkspaces);
@@ -122,6 +143,7 @@ const saveSession = () => {
             activeTabId: savedActiveTabId,
             tabs: tabsArray
         });
+        sendWorkspaceCounts();
     } catch (e) {
         console.error("[DOMUS] Échec de sauvegarde de session:", e.message);
     }
@@ -755,6 +777,7 @@ ipcMain.on('update-tab-state', (e, { id, url, title }) => {
 });
 
 ipcMain.handle('restore-session', (e) => {
+    sendWorkspaceCounts();
     if (tabs.size > 0) {
         // Restaurer le workspace courant en envoyant l'événement de changement
         const workspaces = loadData(workspacesPath, defaultWorkspaces);
@@ -1220,6 +1243,7 @@ ipcMain.on('switch-profile', (e, profileId) => {
             color: ws ? (ws.color || '#00ff88') : '#00ff88'
         });
     }
+    sendWorkspaceCounts();
 });
 
 ipcMain.on('add-workspace', (e, data) => {
@@ -1245,6 +1269,7 @@ ipcMain.on('add-workspace', (e, data) => {
             color: newWs.color
         });
     }
+    sendWorkspaceCounts();
 });
 
 ipcMain.on('delete-workspace', (e, id) => {
@@ -1279,6 +1304,7 @@ ipcMain.on('delete-workspace', (e, id) => {
     if (win && !win.isDestroyed()) {
         win.webContents.send('workspaces-updated', workspaces);
     }
+    saveSession();
 });
 
 ipcMain.on('move-tab-to-workspace', (e, data) => {
@@ -1287,7 +1313,7 @@ ipcMain.on('move-tab-to-workspace', (e, data) => {
         const tab = tabs.get(tabId);
         tab.workspace = targetWorkspace;
         tabs.set(tabId, tab);
-        // L'interface gérera la disparition de l'onglet visuellement s'il ne fait plus partie du workspace courant
+        saveSession();
     }
 });
 
@@ -1307,6 +1333,7 @@ ipcMain.on('move-workspace', (e, { id, direction }) => {
     if (win && !win.isDestroyed()) {
         win.webContents.send('workspaces-updated', workspaces);
     }
+    sendWorkspaceCounts();
 });
 
 // --- SERVICES DE CRYPTOGRAPHIE AVANCÉS ---

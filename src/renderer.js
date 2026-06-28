@@ -83,6 +83,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnWsNew = document.getElementById('btn-ws-new');
     let currentWsColor = '#00ff88';
     let workspacesCache = [];
+    let workspaceCountsCache = {};
 
     let activeTabId = null;
     let activeTabElementId = null;
@@ -1111,6 +1112,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.domusAPI.onWorkspaceCounts((data) => {
         const { counts, list } = data;
+        workspaceCountsCache = counts || {};
+        renderWsDropdown();
+
         const workspaceList = document.getElementById('workspace-list');
         if (!workspaceList) return;
         
@@ -1508,9 +1512,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const item = document.createElement('div');
             item.className = 'ws-drop-item' + (ws.id === currentProfile ? ' active' : '');
             item.style.setProperty('--ws-c', ws.color || '#00ff88');
+            const count = workspaceCountsCache[ws.id] || 0;
+            const countText = count > 0 ? `${count} onglet${count > 1 ? 's' : ''}` : 'vide';
             item.innerHTML = `
                 <span class="ws-drop-icon">${ws.icon}</span>
-                <span class="ws-drop-name">${ws.name}</span>
+                <div class="ws-drop-details" style="display: flex; flex-direction: column; flex: 1; gap: 2px; text-align: left;">
+                    <span class="ws-drop-name" style="font-weight: 500; flex: none;">${ws.name}</span>
+                    <span class="ws-drop-count ${count === 0 ? 'empty' : ''}" style="font-size: 10px; opacity: 0.5;">${countText}</span>
+                </div>
                 <span class="ws-drop-kbd">Ctrl+${idx + 1}</span>
                 ${ws.id !== 'default' ? '<button class="ws-drop-del" title="Supprimer">🗑</button>' : ''}
             `;
