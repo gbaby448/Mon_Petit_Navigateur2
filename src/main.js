@@ -469,10 +469,22 @@ ipcMain.on('window-maximize', () => win.isMaximized() ? win.unmaximize() : win.m
 ipcMain.on('window-close', () => app.quit());
 
 // --- GESTION DES BOUTONS INTELLIGENTS (Toggle & No Duplicates) ---
+const normalizeUrlToDomus = (u) => {
+    if (!u) return '';
+    const cleanUrl = u.split('#')[0].split('?')[0];
+    if (cleanUrl.startsWith('domus://')) return cleanUrl;
+    if (cleanUrl.includes('file://') && cleanUrl.endsWith('.html')) {
+        const pageName = cleanUrl.split('/').pop().replace('.html', '');
+        return `domus://${pageName}`;
+    }
+    return cleanUrl;
+};
+
 const openInternalPage = (url) => {
+    const targetNormalized = normalizeUrlToDomus(url);
     let existingId = null;
     for (const [id, tab] of tabs) {
-        if (tab.url === url) {
+        if (normalizeUrlToDomus(tab.url) === targetNormalized) {
             existingId = id;
             break;
         }
@@ -772,7 +784,7 @@ ipcMain.on('close-tab', (e, id) => {
 ipcMain.on('update-tab-state', (e, { id, url, title }) => {
     if (tabs.has(id)) {
         const tab = tabs.get(id);
-        if (url !== undefined) tab.url = url;
+        if (url !== undefined) tab.url = normalizeUrlToDomus(url);
         if (title !== undefined) tab.title = title;
         tabs.set(id, tab);
         saveSession();

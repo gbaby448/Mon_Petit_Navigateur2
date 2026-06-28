@@ -4,6 +4,11 @@ Ce fichier trace l'évolution, le changelog et les audits fonctionnels du naviga
 
 ---
 
+## 🌟 v1.8.5 - Stabilisation de la Navigation et Gestion Unique des Pages Internes (Paramètres, Historique, Téléchargements)
+*Date de sortie : 28 juin 2026*
+
+Cette mise à jour corrige le comportement du bouton Paramètres (et autres pages internes) en évitant l'ouverture de multiples onglets et en permettant un ciblage unique et propre.
+
 ## 🌟 v1.8.4 - Résolution Définitive des Rapports de Version & Robustesse du Cache AppData
 *Date de sortie : 28 juin 2026*
 
