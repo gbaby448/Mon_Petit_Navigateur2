@@ -1855,9 +1855,8 @@ app.on('web-contents-created', (event, contents) => {
             const isGoogleLogin = urlLower.includes('accounts.google.com') || urlLower.includes('accounts.google.');
 
             if (isGoogleLogin) {
-                ua = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:126.0) Gecko/20100101 Firefox/126.0';
-                
-                // Supprimer les Client Hints Chromium pour simuler Firefox à 100% de manière indétectable
+                // On garde Chrome (defaultUA) pour éviter les resets de session sur YouTube.
+                // On supprime juste les Client Hints Chromium pour éviter le blocage d'Electron.
                 for (const headerName in details.requestHeaders) {
                     if (headerName.toLowerCase().startsWith('sec-ch-ua')) {
                         delete details.requestHeaders[headerName];

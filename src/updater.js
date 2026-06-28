@@ -142,9 +142,13 @@ class DomusUpdater {
 
         req.on('response', (response) => {
             // GitHub redirige vers son CDN - gérer la redirection manuellement si nécessaire
-            if (response.statusCode === 302 || response.statusCode === 301) {
+            if (response.statusCode === 302 || response.statusCode === 301 || response.statusCode === 307 || response.statusCode === 308) {
                 const redirectUrl = response.headers['location'];
                 if (redirectUrl) return this._downloadDirect(redirectUrl, newVersion, destPath, resolve);
+            }
+
+            if (response.statusCode !== 200) {
+                return resolve({ status: 'error', message: `Erreur HTTP ${response.statusCode}` });
             }
 
             const chunks = [];
@@ -180,9 +184,19 @@ class DomusUpdater {
      */
     _downloadDirect(url, newVersion, destPath, resolve) {
         const https = require('https');
-        const file = fs.createWriteStream(destPath);
+        const http = url.startsWith('http:') ? require('http') : require('https');
+        
+        const req = http.get(url, { headers: { 'User-Agent': `DomusBrowser/${this.appVersion}` } }, (res) => {
+            if (res.statusCode === 301 || res.statusCode === 302 || res.statusCode === 307 || res.statusCode === 308) {
+                const redirectUrl = res.headers['location'];
+                if (redirectUrl) return this._downloadDirect(redirectUrl, newVersion, destPath, resolve);
+            }
+            
+            if (res.statusCode !== 200) {
+                return resolve({ status: 'error', message: `Erreur CDN HTTP ${res.statusCode}` });
+            }
 
-        https.get(url, (res) => {
+            const file = fs.createWriteStream(destPath);
             res.pipe(file);
             file.on('finish', () => {
                 file.close(() => {
