@@ -4,7 +4,7 @@ Ce fichier trace l'évolution, le changelog et les audits fonctionnels du naviga
 
 ---
 
-## 🌟 v1.8.3 - Stabilisation de l'Installeur Windows & MAJ Robustes
+## 🌟 v1.8.4 - Résolution Définitive des Rapports de Version & Robustesse du Cache AppData
 *Date de sortie : 28 juin 2026*
 
 Cette mise à jour apporte une robustesse accrue au système de mise à jour automatique tout en étendant la personnalisation dans le Workspace Studio.

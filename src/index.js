@@ -140,24 +140,29 @@ if (fs.existsSync(appDataMetaPath)) {
 // on nettoie l'AppData pour forcer l'utilisation du nouveau binaire physique propre.
 if (!isDev && compareVersions(bundledVersion, appDataVersion) >= 0) {
     console.log(`[DOMUS] Version physique installée (${bundledVersion}) plus récente ou égale à l'update cache (${appDataVersion}). Nettoyage d'AppData...`);
-    try {
-        killOtherInstances();
-        sleepSync(100);
-        
-        if (fs.existsSync(appDataAsarPath)) fs.unlinkSync(appDataAsarPath);
-        if (fs.existsSync(appDataJscPath)) fs.unlinkSync(appDataJscPath);
-        if (fs.existsSync(appDataMetaPath)) fs.unlinkSync(appDataMetaPath);
-        if (fs.existsSync(updateAsarPath)) fs.unlinkSync(updateAsarPath);
-        if (fs.existsSync(updatePath)) fs.unlinkSync(updatePath);
-        if (fs.existsSync(updateMetaPath)) fs.unlinkSync(updateMetaPath);
-    } catch (err) {
-        console.error("[DOMUS] Erreur de nettoyage d'AppData :", err.message);
-    }
+    killOtherInstances();
+    sleepSync(100);
+    
+    const safeDelete = (p) => {
+        try {
+            if (fs.existsSync(p)) fs.unlinkSync(p);
+        } catch (e) {
+            console.warn(`[DOMUS] Échec de suppression de ${p} : ${e.message}`);
+        }
+    };
+    
+    safeDelete(appDataAsarPath);
+    safeDelete(appDataJscPath);
+    safeDelete(appDataMetaPath);
+    safeDelete(updateAsarPath);
+    safeDelete(updatePath);
+    safeDelete(updateMetaPath);
 }
 
 // Déterminer quel binaire charger (priorité à l'app.asar complet, puis main.jsc, puis bundled)
 let activeJscPath = null;
 let activeDirname = __dirname;
+let activeVersion = bundledVersion;
 
 const appDataAsarJscPath = path.join(appDataAsarPath, 'src', 'main.jsc');
 
@@ -166,18 +171,22 @@ const canUseAppData = !isDev && compareVersions(appDataVersion, bundledVersion) 
 if (canUseAppData && fs.existsSync(appDataAsarPath) && fs.statSync(appDataAsarPath).size > 100000) {
     activeJscPath = appDataAsarJscPath;
     activeDirname = path.join(appDataAsarPath, 'src');
+    activeVersion = appDataVersion;
     console.log("[DOMUS] Utilisation de l'application complète mise à jour dans AppData (app.asar).");
 } else if (canUseAppData && fs.existsSync(appDataJscPath)) {
     activeJscPath = appDataJscPath;
     activeDirname = __dirname;
+    activeVersion = appDataVersion;
     console.log("[DOMUS] Utilisation du binaire de mise à jour partiel dans AppData (main.jsc).");
 } else if (fs.existsSync(bundledJscPath)) {
     activeJscPath = bundledJscPath;
     activeDirname = __dirname;
+    activeVersion = bundledVersion;
     console.log("[DOMUS] Utilisation du binaire d'origine (bundled).");
 }
 
 if (activeJscPath) {
+    process.env.DOMUS_ACTIVE_VERSION = activeVersion;
     console.log("[DOMUS] Démarrage en mode BLINDÉ (Production)");
     try {
         // Charger le bytecode compilé du binaire actif

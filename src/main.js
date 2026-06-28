@@ -11,6 +11,9 @@ const DomusUpdater = require('./updater');
 let networkWorker = null;
 
 const getAppVersion = () => {
+    if (process.env.DOMUS_ACTIVE_VERSION) {
+        return process.env.DOMUS_ACTIVE_VERSION;
+    }
     if (!app.isPackaged) {
         try {
             return require('../package.json').version;
