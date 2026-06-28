@@ -1,6 +1,6 @@
 {
   "name": "domus-browser",
-  "version": "1.8.2",
+  "version": "1.8.3",
   "description": "Navigateur souverain, sécurisé et performant.",
   "main": "src/index.js",
   "scripts": {
@@ -52,7 +52,9 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
-      "shortcutName": "Domus Pro"
+      "shortcutName": "Domus Pro",
+      "perMachine": true,
+      "allowElevation": true
     }
   }
 }

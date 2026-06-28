@@ -4,7 +4,7 @@ Ce fichier trace l'évolution, le changelog et les audits fonctionnels du naviga
 
 ---
 
-## 🌟 v1.8.2 - Stabilisation du Système de MAJ & Suppression d'Espace avec Onglets
+## 🌟 v1.8.3 - Stabilisation de l'Installeur Windows & MAJ Robustes
 *Date de sortie : 28 juin 2026*
 
 Cette mise à jour apporte une robustesse accrue au système de mise à jour automatique tout en étendant la personnalisation dans le Workspace Studio.
