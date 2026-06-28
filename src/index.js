@@ -15,6 +15,33 @@ if (isDev) {
 const { loadBytecode } = require('./loader');
 const { execSync } = require('child_process');
 
+// 🔄 GESTION DES MISES À JOUR ATOMIQUES (SWAP DANS APPDATA SEULEMENT)
+const UPDATE_STAGING_DIR = path.join(
+    process.env.APPDATA || path.join(require('os').homedir(), 'AppData', 'Roaming'),
+    'DomusPro'
+);
+
+// Nettoyage des résidus de renommages (.old)
+function cleanupOldFiles() {
+    try {
+        if (!fs.existsSync(UPDATE_STAGING_DIR)) return;
+        const files = fs.readdirSync(UPDATE_STAGING_DIR);
+        for (const file of files) {
+            if (file.endsWith('.old')) {
+                const filePath = path.join(UPDATE_STAGING_DIR, file);
+                try {
+                    fs.unlinkSync(filePath);
+                } catch (e) {
+                    // Toujours verrouillé, on ignore silencieusement
+                }
+            }
+        }
+    } catch (e) {}
+}
+
+// Lancer le nettoyage au boot
+cleanupOldFiles();
+
 function killOtherInstances() {
     try {
         console.log("[DOMUS] Nettoyage des processus persistants...");
@@ -37,7 +64,17 @@ function safeRenameSync(src, dest, retries = 5, delay = 200) {
     for (let i = 0; i < retries; i++) {
         try {
             if (fs.existsSync(dest)) {
-                fs.unlinkSync(dest);
+                const oldDest = dest + '.old';
+                try {
+                    if (fs.existsSync(oldDest)) {
+                        fs.unlinkSync(oldDest);
+                    }
+                    fs.renameSync(dest, oldDest);
+                } catch (err) {
+                    // Si le .old par défaut est verrouillé, on crée un nom unique avec timestamp
+                    const uniqueOldDest = `${dest}.${Date.now()}.${Math.random().toString(36).substring(2, 6)}.old`;
+                    fs.renameSync(dest, uniqueOldDest);
+                }
             }
             fs.renameSync(src, dest);
             console.log(`[DOMUS] Remplacement réussi de ${dest}`);
@@ -57,12 +94,6 @@ function safeRenameSync(src, dest, retries = 5, delay = 200) {
 
 const mainJsPath = path.join(__dirname, 'main.js');
 const bundledJscPath = path.join(__dirname, 'main.jsc');
-
-// 🔄 GESTION DES MISES À JOUR ATOMIQUES (SWAP DANS APPDATA SEULEMENT)
-const UPDATE_STAGING_DIR = path.join(
-    process.env.APPDATA || path.join(require('os').homedir(), 'AppData', 'Roaming'),
-    'DomusPro'
-);
 
 // Double mode : app.asar (complet) ou main.jsc (partiel pour rétrocompatibilité)
 const updateAsarPath  = path.join(UPDATE_STAGING_DIR, 'app.asar.update');
@@ -94,6 +125,10 @@ if (!isDev && fs.existsSync(updateAsarPath)) {
         console.log("[DOMUS] Mise à jour ASAR installée avec succès.");
     } catch (err) {
         console.error("[DOMUS] Échec de l'application de la mise à jour ASAR :", err.message);
+        try {
+            const errorLog = path.join(require('os').homedir(), 'domus-error.log');
+            fs.appendFileSync(errorLog, `[UPDATE ASAR ERROR] ${new Date().toISOString()}\n${err.stack}\n`);
+        } catch (e) {}
     }
 } else if (!isDev && fs.existsSync(updatePath)) {
     try {
@@ -108,6 +143,10 @@ if (!isDev && fs.existsSync(updateAsarPath)) {
         console.log("[DOMUS] Mise à jour JSC installée avec succès.");
     } catch (err) {
         console.error("[DOMUS] Échec de l'application de la mise à jour JSC :", err.message);
+        try {
+            const errorLog = path.join(require('os').homedir(), 'domus-error.log');
+            fs.appendFileSync(errorLog, `[UPDATE JSC ERROR] ${new Date().toISOString()}\n${err.stack}\n`);
+        } catch (e) {}
     }
 }
 

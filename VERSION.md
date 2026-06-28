@@ -4,6 +4,11 @@ Ce fichier trace l'évolution, le changelog et les audits fonctionnels du naviga
 
 ---
 
+## 🌟 v1.8.6 - Swap Atomique NTFS contre le verrouillage de fichiers Windows
+*Date de sortie : 28 juin 2026*
+
+Cette mise à jour apporte le mécanisme de renommage atomique NTFS (.old) au chargeur de mise à jour pour contourner définitivement les verrous de fichiers Windows lors du redémarrage du navigateur.
+
 ## 🌟 v1.8.5 - Stabilisation de la Navigation et Gestion Unique des Pages Internes (Paramètres, Historique, Téléchargements)
 *Date de sortie : 28 juin 2026*
 
