@@ -1,4 +1,4 @@
-## Domus Browser Pro v1.7.4 🌟
+## Domus Browser Pro v1.7.5 🌟
 
 ### Robustesse des Mises à Jour & Templates de Workspace Personnalisés
 

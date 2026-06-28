@@ -9,6 +9,13 @@ const securityManager = require('./security');
 const DomusUpdater = require('./updater');
 
 const getAppVersion = () => {
+    if (!app.isPackaged) {
+        try {
+            return require('../package.json').version;
+        } catch (e) {
+            return '1.7.4';
+        }
+    }
     const UPDATE_STAGING_DIR = path.join(
         process.env.APPDATA || path.join(require('os').homedir(), 'AppData', 'Roaming'),
         'DomusPro'

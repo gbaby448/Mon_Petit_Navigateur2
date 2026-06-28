@@ -1,9 +1,16 @@
 const path = require('path');
 const fs = require('fs');
+const { app } = require('electron');
 
 /**
  * Domus Secure Entry Point
  */
+
+// Détection du mode développement
+const isDev = !app.isPackaged;
+if (isDev) {
+    console.log("[DOMUS] Mode développement détecté. Les mises à jour AppData sont ignorées.");
+}
 
 // Initialisation du Loader de Bytecode
 const { loadBytecode } = require('./loader');
@@ -29,7 +36,7 @@ const appDataMetaPath = path.join(UPDATE_STAGING_DIR, 'metadata.json');
 const updateFlagPath  = path.join(UPDATE_STAGING_DIR, 'just-updated.flag');
 
 // Si une mise à jour ASAR ou JSC est en attente, on la swap
-if (fs.existsSync(updateAsarPath)) {
+if (!isDev && fs.existsSync(updateAsarPath)) {
     try {
         console.log("[DOMUS] Application d'une mise à jour ASAR complète dans AppData...");
         if (fs.existsSync(appDataAsarPath)) fs.unlinkSync(appDataAsarPath);
@@ -48,7 +55,7 @@ if (fs.existsSync(updateAsarPath)) {
     } catch (err) {
         console.error("[DOMUS] Échec de l'application de la mise à jour ASAR :", err.message);
     }
-} else if (fs.existsSync(updatePath)) {
+} else if (!isDev && fs.existsSync(updatePath)) {
     try {
         console.log("[DOMUS] Application d'une mise à jour JSC partielle dans AppData...");
         if (fs.existsSync(appDataJscPath)) fs.unlinkSync(appDataJscPath);
@@ -93,7 +100,7 @@ if (fs.existsSync(appDataMetaPath)) {
 
 // Si la version physique (bundled) installée sur le PC est plus récente ou identique à l'AppData,
 // on nettoie l'AppData pour forcer l'utilisation du nouveau binaire physique propre.
-if (compareVersions(bundledVersion, appDataVersion) >= 0) {
+if (!isDev && compareVersions(bundledVersion, appDataVersion) >= 0) {
     console.log(`[DOMUS] Version physique installée (${bundledVersion}) plus récente ou égale à l'update cache (${appDataVersion}). Nettoyage d'AppData...`);
     try {
         if (fs.existsSync(appDataAsarPath)) fs.unlinkSync(appDataAsarPath);
@@ -113,11 +120,11 @@ let activeDirname = __dirname;
 
 const appDataAsarJscPath = path.join(appDataAsarPath, 'src', 'main.jsc');
 
-if (fs.existsSync(appDataAsarPath) && fs.existsSync(appDataAsarJscPath)) {
+if (!isDev && fs.existsSync(appDataAsarPath) && fs.existsSync(appDataAsarJscPath)) {
     activeJscPath = appDataAsarJscPath;
     activeDirname = path.join(appDataAsarPath, 'src');
     console.log("[DOMUS] Utilisation de l'application complète mise à jour dans AppData (app.asar).");
-} else if (fs.existsSync(appDataJscPath)) {
+} else if (!isDev && fs.existsSync(appDataJscPath)) {
     activeJscPath = appDataJscPath;
     activeDirname = __dirname;
     console.log("[DOMUS] Utilisation du binaire de mise à jour partiel dans AppData (main.jsc).");
