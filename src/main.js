@@ -1280,11 +1280,13 @@ ipcMain.on('delete-workspace', (e, id) => {
     workspaces = workspaces.filter(w => w.id !== id);
     saveData(workspacesPath, workspaces);
     
-    // Déplacer les onglets de cet espace vers l'espace par défaut
+    // Fermer tous les onglets de cet espace
     for (let [tabId, tab] of tabs.entries()) {
         if (tab.workspace === id) {
-            tab.workspace = 'default';
-            tabs.set(tabId, tab);
+            tabs.delete(tabId);
+            if (win && !win.isDestroyed()) {
+                win.webContents.send('tab-closed', tabId);
+            }
         }
     }
     
