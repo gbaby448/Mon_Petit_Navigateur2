@@ -60,7 +60,7 @@ function sleepSync(ms) {
     }
 }
 
-function safeRenameSync(src, dest, retries = 5, delay = 200) {
+function safeRenameSync(src, dest, retries = 30, delay = 500) {
     for (let i = 0; i < retries; i++) {
         try {
             if (fs.existsSync(dest)) {

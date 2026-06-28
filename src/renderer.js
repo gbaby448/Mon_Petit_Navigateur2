@@ -743,6 +743,35 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.domusAPI.updateTabState(data.id, { url: currentUrl, title: currentTitle });
             });
 
+            const handleNavigationUpdate = (url) => {
+                if (!url) return;
+                
+                // Mettre à jour l'état de la session
+                const currentTitle = wv.getTitle() || "Sans titre";
+                window.domusAPI.updateTabState(data.id, { url: url, title: currentTitle });
+
+                if (wv.classList.contains('active')) {
+                    if (url.includes('file://')) {
+                        const pageName = url.split('/').pop().replace('.html', '');
+                        urlInput.value = `domus://${pageName}`;
+                    } else {
+                        urlInput.value = url;
+                    }
+                    updateUrlBarSecurityStyle(url);
+                    updateBookmarkStar(url);
+                }
+                
+                handleTabDomainChange(data.id);
+            };
+
+            wv.addEventListener('did-navigate', (e) => {
+                handleNavigationUpdate(e.url);
+            });
+
+            wv.addEventListener('did-navigate-in-page', (e) => {
+                handleNavigationUpdate(e.url);
+            });
+
             // Sync du nom de l'onglet avec le titre de la page web
             wv.addEventListener('page-title-updated', (e) => {
                 const titleSpan = tabEl.querySelector('.tab-title');

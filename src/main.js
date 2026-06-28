@@ -78,6 +78,26 @@ let currentWorkspace = 'default';
 let activeTabId = null;
 const closedTabsStack = [];
 
+// Cache DNS et Cache de Configuration pour optimiser les performances (évite la saturation d'E/S et du threadpool)
+const dnsCache = new Map();
+let cachedSettings = null;
+
+const getSettingsCached = (defaults = { theme: 'dark', accentColor: '#00ff88', searchEngine: 'google', securitySetup: false }) => {
+    if (!cachedSettings) {
+        cachedSettings = loadData(settingsPath, defaults);
+    }
+    return cachedSettings;
+};
+
+const saveSettingsCached = (settings) => {
+    saveData(settingsPath, settings);
+    cachedSettings = settings;
+};
+
+const clearSettingsCache = () => {
+    cachedSettings = null;
+};
+
 // Initialize default workspaces — only ONE base workspace, user creates the rest
 const defaultWorkspaces = [
     { id: 'default', name: 'Mon Espace', icon: '🌐', color: '#00ff88', isPrivate: false }
@@ -188,6 +208,16 @@ const loadSession = () => {
 const createNewTabInWorkspace = (url, isShadow = false, workspaceId = null) => {
     const id = `tab-${tabCounter++}`;
     const targetWorkspace = workspaceId || currentWorkspace;
+    
+    // Si l'espace de travail cible est privé, l'onglet doit OBLIGATOIREMENT être shadow/privé
+    try {
+        const workspaces = loadData(workspacesPath, defaultWorkspaces);
+        const targetWs = workspaces.find(w => w.id === targetWorkspace);
+        if (targetWs && targetWs.isPrivate) {
+            isShadow = true;
+        }
+    } catch (e) {}
+
     const newTab = { id, url, active: true, isShadow, workspace: targetWorkspace };
     tabs.set(id, newTab);
     if (win && !win.isDestroyed()) {
@@ -201,8 +231,8 @@ const createNewTabInWorkspace = (url, isShadow = false, workspaceId = null) => {
 loadSession();
 
 // --- PERSISTENCE & SETTINGS ---
-ipcMain.handle('get-settings', () => loadData(settingsPath, { theme: 'dark', accentColor: '#00ff88', searchEngine: 'google', securitySetup: false }));
-ipcMain.handle('save-settings', (e, s) => { saveData(settingsPath, s); return true; });
+ipcMain.handle('get-settings', () => getSettingsCached());
+ipcMain.handle('save-settings', (e, s) => { saveSettingsCached(s); return true; });
 ipcMain.handle('get-app-version', () => DOMUS_VERSION);
 
 
@@ -222,7 +252,7 @@ ipcMain.handle('check-hardware-features', async () => {
 
 ipcMain.handle('init-vault', async (e, pwd) => {
     try {
-        const settings = loadData(settingsPath, {});
+        const settings = getSettingsCached();
         const salt = settings.securityValidation ? settings.securityValidation.salt : null;
         securityManager.deriveKey(pwd, salt);
         
@@ -424,7 +454,7 @@ ipcMain.on('save-to-history', (e, item) => {
 // --- RECHERCHE ---
 ipcMain.handle('fetch-suggestions', async (e, query) => {
     try {
-        const settings = loadData(settingsPath, { searchEngine: 'google' });
+        const settings = getSettingsCached();
         const engine = settings.searchEngine || 'google';
         
         let url = '';
@@ -877,11 +907,11 @@ function createWindow() {
             activePermissionCallbacks.delete(requestId);
             if (remember) {
                 try {
-                    const settings = loadData(settingsPath, {});
+                    const settings = { ...getSettingsCached() };
                     if (!settings.permissions) settings.permissions = {};
                     if (!settings.permissions[permission]) settings.permissions[permission] = {};
                     settings.permissions[permission][host] = allowed ? 'allow' : 'deny';
-                    saveData(settingsPath, settings);
+                    saveSettingsCached(settings);
                     console.log(`[DOMUS SEC] Permission ${permission} pour ${host} enregistrée : ${allowed ? 'ALLOW' : 'DENY'}`);
                 } catch (e) {
                     console.error('[DOMUS] Erreur de sauvegarde de permission :', e);
@@ -903,7 +933,7 @@ function createWindow() {
 
         // 1. Vérifier si la permission a déjà été mémorisée
         try {
-            const settings = loadData(settingsPath, {});
+            const settings = getSettingsCached();
             const savedPermissions = settings.permissions || {};
             const permCategory = savedPermissions[permission] || {};
             if (permCategory[host] === 'allow') {
@@ -990,7 +1020,7 @@ function createWindow() {
             domain = new URL(details.url).hostname;
         } catch(e) {}
 
-        const settings = loadData(settingsPath, {});
+        const settings = getSettingsCached();
         const disabledShieldDomains = settings.disabledShieldDomains || [];
         if (domain && disabledShieldDomains.includes(domain)) {
             return callback({ cancel: false });
@@ -1008,14 +1038,27 @@ function createWindow() {
             return callback({ cancel: true });
         }
 
-        try {
-            const parsedUrl = new URL(details.url);
-            dns.lookup(parsedUrl.hostname, (err, address) => {
-                if (!err && address && networkWorker) {
-                    networkWorker.postMessage({ type: 'lookup-ip', ip: address, url: details.url });
+        // Optimisation de la résolution DNS : uniquement pour le document principal (mainFrame)
+        // et mise en cache DNS en mémoire pour éviter d'épuiser le pool de threads libuv de Node.js
+        if (details.resourceType === 'mainFrame' && domain) {
+            try {
+                const cachedIp = dnsCache.get(domain);
+                if (cachedIp) {
+                    if (networkWorker) {
+                        networkWorker.postMessage({ type: 'lookup-ip', ip: cachedIp, url: details.url });
+                    }
+                } else {
+                    dns.lookup(domain, (err, address) => {
+                        if (!err && address) {
+                            dnsCache.set(domain, address);
+                            if (networkWorker) {
+                                networkWorker.postMessage({ type: 'lookup-ip', ip: address, url: details.url });
+                            }
+                        }
+                    });
                 }
-            });
-        } catch (e) {}
+            } catch (e) {}
+        }
 
         callback({ cancel: false });
     });
@@ -1413,7 +1456,7 @@ ipcMain.handle('import-backup', async () => {
             parsed = JSON.parse(decrypted);
         }
         
-        if (parsed.settings) saveData(settingsPath, parsed.settings);
+        if (parsed.settings) saveSettingsCached(parsed.settings);
         if (parsed.passwords) saveData(passwordsPath, parsed.passwords);
         if (parsed.cards) saveData(cardsPath, parsed.cards);
         if (parsed.history) saveData(historyPath, parsed.history);
@@ -1537,7 +1580,10 @@ ipcMain.handle('get-archive-data', (e, id) => {
 // --- SYSTÈME & EFFACEMENT COMPLET ---
 ipcMain.handle('reset-browser', () => {
     try {
-        if (fs.existsSync(settingsPath)) fs.unlinkSync(settingsPath);
+        if (fs.existsSync(settingsPath)) {
+            fs.unlinkSync(settingsPath);
+            clearSettingsCache();
+        }
         if (fs.existsSync(historyPath)) fs.unlinkSync(historyPath);
         if (fs.existsSync(passwordsPath)) fs.unlinkSync(passwordsPath);
         if (fs.existsSync(cardsPath)) fs.unlinkSync(cardsPath);
@@ -1583,14 +1629,14 @@ ipcMain.handle('validate-master-pwd', (e, pwd) => {
 ipcMain.on('finalize-security', (e, { password }) => {
     try {
         const salt = securityManager.deriveKey(password);
-        const settings = loadData(settingsPath, {});
+        const settings = { ...getSettingsCached() };
         settings.securitySetup = true;
         settings.useAegis = !password;
         
         // Jeton de validation cryptographique
         settings.securityValidation = securityManager.encrypt("DOMUS-VALID-2026");
         
-        saveData(settingsPath, settings);
+        saveSettingsCached(settings);
         
         securityManager.useAegis = settings.useAegis;
         

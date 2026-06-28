@@ -1,3 +1,15 @@
+## Domus Browser Pro v1.8.8 🌟
+
+### Stabilisation du Système de Mise à Jour, Session et Optimisation Réseau
+
+Cette mise à jour apporte des améliorations majeures en matière de stabilité et de performance :
+- **Mises à jour robustes** : Augmentation du nombre d'essais et du délai dans le swapping atomique NTFS au boot de l'application pour tolérer les verrous prolongés de Windows et des logiciels antivirus.
+- **Restauration précise de session** : Synchronisation en temps réel de l'URL précise de la session (notamment sur YouTube et autres sites à chargement dynamique SPA) via les événements `did-navigate` et `did-navigate-in-page`.
+- **Zéro blocage d'E/S et optimisation DNS** : Mise en cache en mémoire des configurations (Settings) et introduction d'un cache DNS (`dnsCache`) limité aux requêtes `mainFrame` afin de soulager le threadpool libuv de Node.js, résolvant définitivement l'erreur "Impossible d'accéder à la page / Erreur réseau inconnue".
+- **Sécurité et Isolation** : Forçage du mode incognito/shadow (`isShadow`) pour les onglets ouverts dans des espaces de travail privés.
+
+---
+
 ## Domus Browser Pro v1.8.7 🌟
 
 ### Correction du dialogue de confirmation de suppression d'espace de travail
