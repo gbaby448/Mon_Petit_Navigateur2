@@ -657,15 +657,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
             
-            tabsContainer.appendChild(tabEl);
-
+            /* 
+            // ELECTRON WEBVIEW INJECTION (DISABLED FOR TAURI)
             const wv = document.createElement('webview');
+            ...
+            */
+            // MOCK OBJECT TO PREVENT JS CRASH
+            const wv = document.createElement('div');
             wv.id = `view-${data.id}`;
             wv.className = (isForCurrentWorkspace && data.active) ? 'active' : '';
-            
-            wv.setAttribute('preload', './preload.js');
-            wv.setAttribute('webpreferences', 'contextIsolation=yes');
-            wv.setAttribute('allowpopups', 'yes');
+            wv.getURL = () => data.url || 'https://google.com';
+            wv.getTitle = () => data.title || 'Nouvel Onglet';
+            wv.setZoomFactor = () => {};
+            wv.goBack = () => {};
+            wv.goForward = () => {};
+            wv.reload = () => {};
             const defaultUA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36';
             wv.setAttribute('useragent', defaultUA);
 
@@ -808,7 +814,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
-            webviewWrapper.appendChild(wv);
+            // webviewWrapper.appendChild(wv); // DISABLED FOR TAURI
             if (data.active) {
                 activeTabElementId = tabEl.id;
                 activeTabId = data.id;

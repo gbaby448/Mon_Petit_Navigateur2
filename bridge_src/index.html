@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Mise à jour majeure - Domus V2</title>
+    <style>
+        body {
+            background-color: #0f111a;
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        h1 { color: #00ff88; margin-bottom: 10px; }
+        p { color: #8a91a8; font-size: 16px; margin-bottom: 30px; text-align: center; max-width: 400px; }
+        .loader {
+            border: 4px solid #1a1d2d;
+            border-top: 4px solid #00ff88;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        #status { font-weight: bold; color: #fff; }
+    </style>
+</head>
+<body>
+    <div class="loader"></div>
+    <h1>Domus Browser V2</h1>
+    <p>Une mise à jour majeure de l'architecture est en cours de préparation. Le navigateur va redémarrer sur la nouvelle version ultra-rapide (Tauri).</p>
+    <div id="status">Connexion au serveur...</div>
+    
+    <script>
+        const { ipcRenderer } = require('electron');
+        ipcRenderer.on('status-update', (event, message) => {
+            document.getElementById('status').innerText = message;
+        });
+    </script>
+</body>
+</html>
